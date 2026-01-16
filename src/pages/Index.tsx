@@ -26,7 +26,7 @@ export default function Index() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-display font-bold text-gradient-primary">AGENT ARENA</h1>
+            <h1 className="text-xl font-display font-bold text-gradient-primary">CodenAImes</h1>
           </div>
           <div className="flex items-center gap-4">
             <CreateGameDialog />
