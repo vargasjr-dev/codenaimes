@@ -2,95 +2,109 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Codenames Arena - Cyberpunk Dark Theme */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Background - Deep space dark */
+    --background: 220 20% 6%;
+    --foreground: 200 20% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Cards - Slightly elevated dark */
+    --card: 220 20% 10%;
+    --card-foreground: 200 20% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Popover */
+    --popover: 220 20% 8%;
+    --popover-foreground: 200 20% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Electric Teal */
+    --primary: 175 80% 50%;
+    --primary-foreground: 220 20% 6%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Deep purple accent */
+    --secondary: 260 40% 20%;
+    --secondary-foreground: 200 20% 95%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted */
+    --muted: 220 15% 15%;
+    --muted-foreground: 200 15% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Amber/Gold highlights */
+    --accent: 40 90% 55%;
+    --accent-foreground: 220 20% 6%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Team colors */
+    --team-red: 0 75% 55%;
+    --team-red-foreground: 0 0% 100%;
+    --team-blue: 210 80% 55%;
+    --team-blue-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Assassin */
+    --assassin: 0 0% 10%;
+    --assassin-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Neutral */
+    --neutral-card: 40 15% 30%;
+    --neutral-card-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
+    /* Destructive */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Borders */
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 175 80% 50%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    --radius: 0.75rem;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Glow effects */
+    --glow-primary: 0 0 20px hsl(175 80% 50% / 0.4);
+    --glow-accent: 0 0 20px hsl(40 90% 55% / 0.4);
+    --glow-red: 0 0 20px hsl(0 75% 55% / 0.4);
+    --glow-blue: 0 0 20px hsl(210 80% 55% / 0.4);
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 200 20% 95%;
+    --sidebar-primary: 175 80% 50%;
+    --sidebar-primary-foreground: 220 20% 6%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 200 20% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 175 80% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 220 20% 6%;
+    --foreground: 200 20% 95%;
+    --card: 220 20% 10%;
+    --card-foreground: 200 20% 95%;
+    --popover: 220 20% 8%;
+    --popover-foreground: 200 20% 95%;
+    --primary: 175 80% 50%;
+    --primary-foreground: 220 20% 6%;
+    --secondary: 260 40% 20%;
+    --secondary-foreground: 200 20% 95%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 200 15% 55%;
+    --accent: 40 90% 55%;
+    --accent-foreground: 220 20% 6%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 175 80% 50%;
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 200 20% 95%;
+    --sidebar-primary: 175 80% 50%;
+    --sidebar-primary-foreground: 220 20% 6%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 200 20% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 175 80% 50%;
   }
 }
 
@@ -100,6 +114,125 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+}
+
+@layer components {
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .text-gradient-team-red {
+    background: linear-gradient(135deg, hsl(0 75% 55%), hsl(20 70% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-team-blue {
+    background: linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .card-glow {
+    box-shadow: 0 0 30px hsl(175 80% 50% / 0.15), inset 0 1px 0 hsl(175 80% 50% / 0.1);
+  }
+
+  .card-glow-red {
+    box-shadow: 0 0 30px hsl(0 75% 55% / 0.2), inset 0 1px 0 hsl(0 75% 55% / 0.1);
+  }
+
+  .card-glow-blue {
+    box-shadow: 0 0 30px hsl(210 80% 55% / 0.2), inset 0 1px 0 hsl(210 80% 55% / 0.1);
+  }
+
+  .game-word-card {
+    @apply relative p-4 rounded-lg font-semibold text-center transition-all duration-300 cursor-pointer;
+    @apply border border-border bg-card hover:scale-105;
+  }
+
+  .game-word-card.revealed-red {
+    @apply bg-team-red text-team-red-foreground border-transparent;
+    box-shadow: var(--glow-red);
+  }
+
+  .game-word-card.revealed-blue {
+    @apply bg-team-blue text-team-blue-foreground border-transparent;
+    box-shadow: var(--glow-blue);
+  }
+
+  .game-word-card.revealed-neutral {
+    @apply bg-neutral-card text-neutral-card-foreground border-transparent;
+  }
+
+  .game-word-card.revealed-assassin {
+    @apply bg-assassin text-assassin-foreground border-transparent;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(175 80% 50% / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(175 80% 50% / 0.6);
+    }
+  }
+
+  .grid-pattern {
+    background-image: 
+      linear-gradient(hsl(175 80% 50% / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(175 80% 50% / 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+}
+
+@layer utilities {
+  .bg-team-red {
+    background-color: hsl(var(--team-red));
+  }
+  .bg-team-blue {
+    background-color: hsl(var(--team-blue));
+  }
+  .text-team-red {
+    color: hsl(var(--team-red));
+  }
+  .text-team-blue {
+    color: hsl(var(--team-blue));
+  }
+  .text-team-red-foreground {
+    color: hsl(var(--team-red-foreground));
+  }
+  .text-team-blue-foreground {
+    color: hsl(var(--team-blue-foreground));
+  }
+  .bg-neutral-card {
+    background-color: hsl(var(--neutral-card));
+  }
+  .text-neutral-card-foreground {
+    color: hsl(var(--neutral-card-foreground));
+  }
+  .bg-assassin {
+    background-color: hsl(var(--assassin));
+  }
+  .text-assassin-foreground {
+    color: hsl(var(--assassin-foreground));
+  }
+  .border-team-red {
+    border-color: hsl(var(--team-red));
+  }
+  .border-team-blue {
+    border-color: hsl(var(--team-blue));
   }
 }
