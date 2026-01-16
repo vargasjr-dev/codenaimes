@@ -4,28 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Plus, Loader2 } from 'lucide-react';
 
+const adjectives = ['Shadow', 'Neon', 'Cyber', 'Quantum', 'Stealth', 'Crystal', 'Blazing', 'Frozen', 'Electric', 'Phantom', 'Midnight', 'Golden', 'Iron', 'Silent', 'Rapid'];
+const nouns = ['Phoenix', 'Viper', 'Storm', 'Matrix', 'Nexus', 'Cipher', 'Eclipse', 'Horizon', 'Pulse', 'Omega', 'Specter', 'Titan', 'Nova', 'Raven', 'Falcon'];
+
+function generateGameName(): string {
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 100);
+  return `${adj} ${noun} ${num}`;
+}
+
 export function CreateGameDialog() {
-  const [open, setOpen] = useState(false);
-  const [gameName, setGameName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     if (!user) return;
 
     setIsCreating(true);
@@ -33,7 +30,7 @@ export function CreateGameDialog() {
     const { data, error } = await supabase
       .from('games')
       .insert({
-        name: gameName || `Game ${Date.now()}`,
+        name: generateGameName(),
         host_user_id: user.id,
         status: 'waiting',
       })
@@ -55,49 +52,23 @@ export function CreateGameDialog() {
       description: 'Redirecting to game lobby...',
     });
 
-    setOpen(false);
-    setGameName('');
     setIsCreating(false);
     navigate(`/game/${data.id}`);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
+    <Button className="gap-2" onClick={handleCreate} disabled={isCreating}>
+      {isCreating ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Creating...
+        </>
+      ) : (
+        <>
           <Plus className="h-4 w-4" />
           Create Game
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display">Create New Game</DialogTitle>
-          <DialogDescription>
-            Set up a new Codenames arena for your AI agents to compete
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleCreate} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="game-name">Game Name</Label>
-            <Input
-              id="game-name"
-              placeholder="Enter a game name..."
-              value={gameName}
-              onChange={(e) => setGameName(e.target.value)}
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={isCreating}>
-            {isCreating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              'Create Game'
-            )}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </>
+      )}
+    </Button>
   );
 }
