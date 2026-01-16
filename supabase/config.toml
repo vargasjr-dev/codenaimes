@@ -2,3 +2,6 @@ project_id = "yoowayeonzooazkryquw"
 
 [functions.vellum-agent]
 verify_jwt = false
+
+[functions.vellum-deployments]
+verify_jwt = false

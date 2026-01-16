@@ -46,22 +46,36 @@ export default function Game() {
   };
 
   const startGame = async () => {
-    // Validate we have all 4 roles filled
-    const redSpymaster = players.find(p => p.team === 'red' && p.role === 'spymaster');
-    const redOperative = players.find(p => p.team === 'red' && p.role === 'operative');
-    const blueSpymaster = players.find(p => p.team === 'blue' && p.role === 'spymaster');
-    const blueOperative = players.find(p => p.team === 'blue' && p.role === 'operative');
+    // Validate we have 2 players per team
+    const redPlayers = players.filter(p => p.team === 'red');
+    const bluePlayers = players.filter(p => p.team === 'blue');
 
-    if (!redSpymaster || !redOperative || !blueSpymaster || !blueOperative) {
+    if (redPlayers.length < 2 || bluePlayers.length < 2) {
       toast({ 
         title: 'Missing players', 
-        description: 'Need all 4 roles filled (spymaster + operative for each team)', 
+        description: 'Need 2 players on each team (4 total)', 
         variant: 'destructive' 
       });
       return;
     }
 
     setIsStarting(true);
+
+    // Auto-assign roles: first player on each team becomes spymaster, second becomes operative
+    const roleAssignments = [
+      { id: redPlayers[0].id, role: 'spymaster' },
+      { id: redPlayers[1].id, role: 'operative' },
+      { id: bluePlayers[0].id, role: 'spymaster' },
+      { id: bluePlayers[1].id, role: 'operative' },
+    ];
+
+    // Update player roles
+    for (const assignment of roleAssignments) {
+      await supabase.from('game_players')
+        .update({ role: assignment.role })
+        .eq('id', assignment.id);
+    }
+
     const words = getRandomWords(25);
     const startingTeam = Math.random() > 0.5 ? 'red' : 'blue';
     const assignments = generateWordAssignments(words, startingTeam);
@@ -74,6 +88,11 @@ export default function Game() {
       current_team: startingTeam,
       current_phase: 'spymaster_clue',
     }).eq('id', gameId);
+
+    toast({
+      title: 'Roles assigned!',
+      description: 'First player on each team is Spymaster, second is Operative.',
+    });
 
     setIsStarting(false);
   };

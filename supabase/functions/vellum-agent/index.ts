@@ -53,12 +53,28 @@ serve(async (req) => {
       });
     }
 
-    if (!player.vellum_api_key || !player.vellum_agent_id) {
-      return new Response(JSON.stringify({ error: 'Player missing Vellum credentials' }), {
+    // Fetch API key from user's profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('vellum_api_key')
+      .eq('user_id', player.user_id)
+      .single();
+
+    if (profileError || !profile?.vellum_api_key) {
+      return new Response(JSON.stringify({ error: 'Player missing Vellum API key in profile' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    if (!player.vellum_agent_id) {
+      return new Response(JSON.stringify({ error: 'Player missing Vellum agent selection' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const vellumApiKey = profile.vellum_api_key;
 
     const words = game.words as string[];
     const wordAssignments = game.word_assignments as Record<string, string>;
@@ -88,7 +104,7 @@ Respond in this exact JSON format:
 
 Think strategically - try to link multiple of your team's words while avoiding words that could lead to opposing team, neutral, or assassin words.`;
 
-      const vellumResponse = await callVellumAgent(player.vellum_api_key, player.vellum_agent_id, prompt);
+      const vellumResponse = await callVellumAgent(vellumApiKey, player.vellum_agent_id, prompt);
       console.log('Vellum spymaster response:', vellumResponse);
 
       // Parse the clue from the response
@@ -131,7 +147,7 @@ Respond in this exact JSON format:
 
 The guess MUST be exactly one of the unrevealed words listed above, or "PASS".`;
 
-      const vellumResponse = await callVellumAgent(player.vellum_api_key, player.vellum_agent_id, prompt);
+      const vellumResponse = await callVellumAgent(vellumApiKey, player.vellum_agent_id, prompt);
       console.log('Vellum operative response:', vellumResponse);
 
       // Parse the guess from the response

@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, AlertCircle } from 'lucide-react';
+
+interface VellumDeployment {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+}
 
 interface JoinGamePanelProps {
   gameId: string;
@@ -21,15 +28,63 @@ interface JoinGamePanelProps {
 
 export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePanelProps) {
   const [team, setTeam] = useState<'red' | 'blue'>('red');
-  const [role, setRole] = useState<'spymaster' | 'operative'>('spymaster');
-  const [vellumAgentId, setVellumAgentId] = useState('');
-  const [vellumApiKey, setVellumApiKey] = useState('');
+  const [selectedDeployment, setSelectedDeployment] = useState('');
+  const [deployments, setDeployments] = useState<VellumDeployment[]>([]);
+  const [isLoadingDeployments, setIsLoadingDeployments] = useState(true);
+  const [deploymentError, setDeploymentError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const isSlotTaken = (t: string, r: string) => {
-    return existingPlayers.some(p => p.team === t && p.role === r);
+  useEffect(() => {
+    if (user) {
+      fetchDeployments();
+    }
+  }, [user]);
+
+  const fetchDeployments = async () => {
+    setIsLoadingDeployments(true);
+    setDeploymentError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setDeploymentError('Not authenticated');
+        setIsLoadingDeployments(false);
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vellum-deployments`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.error && data.deployments?.length === 0) {
+        setDeploymentError(data.error);
+      } else if (data.deployments) {
+        setDeployments(data.deployments);
+        if (data.deployments.length > 0) {
+          setSelectedDeployment(data.deployments[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching deployments:', error);
+      setDeploymentError('Failed to load deployments');
+    }
+
+    setIsLoadingDeployments(false);
+  };
+
+  const isTeamFull = (t: string) => {
+    return existingPlayers.filter(p => p.team === t).length >= 2;
   };
 
   const isAlreadyJoined = existingPlayers.some(p => p.user_id === user?.id);
@@ -38,28 +93,19 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
     e.preventDefault();
     if (!user) return;
 
-    if (isSlotTaken(team, role)) {
+    if (isTeamFull(team)) {
       toast({
-        title: 'Slot taken',
-        description: 'This team/role combination is already taken.',
+        title: 'Team full',
+        description: 'This team already has 2 players.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!vellumAgentId.trim()) {
+    if (!selectedDeployment) {
       toast({
-        title: 'Agent ID required',
-        description: 'Please enter your Vellum Agent ID.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!vellumApiKey.trim()) {
-      toast({
-        title: 'API Key required',
-        description: 'Please enter your Vellum API Key.',
+        title: 'Agent required',
+        description: 'Please select a Vellum workflow deployment.',
         variant: 'destructive',
       });
       return;
@@ -67,15 +113,16 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
 
     setIsJoining(true);
 
+    // Role will be assigned when game starts, just store 'pending' for now
     const { error } = await supabase
       .from('game_players')
       .insert({
         game_id: gameId,
         user_id: user.id,
         team,
-        role,
-        vellum_agent_id: vellumAgentId,
-        vellum_api_key: vellumApiKey,
+        role: 'pending', // Will be assigned at game start
+        vellum_agent_id: selectedDeployment,
+        // API key comes from profile, no need to store per-game
       });
 
     if (error) {
@@ -90,7 +137,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
 
     toast({
       title: 'Joined game!',
-      description: `You are now the ${team} team ${role}.`,
+      description: `You are now on the ${team} team.`,
     });
 
     onJoined();
@@ -106,7 +153,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
       <CardHeader>
         <CardTitle className="font-display">Join Game</CardTitle>
         <CardDescription>
-          Select your team, role, and configure your Vellum agent
+          Select your team and choose your Vellum agent
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -122,76 +169,70 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
                 <RadioGroupItem 
                   value="red" 
                   id="team-red" 
-                  disabled={isSlotTaken('red', 'spymaster') && isSlotTaken('red', 'operative')}
+                  disabled={isTeamFull('red')}
                 />
                 <Label htmlFor="team-red" className="text-team-red font-semibold">
-                  Red Team
+                  Red Team {isTeamFull('red') && '(Full)'}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem 
                   value="blue" 
                   id="team-blue"
-                  disabled={isSlotTaken('blue', 'spymaster') && isSlotTaken('blue', 'operative')}
+                  disabled={isTeamFull('blue')}
                 />
                 <Label htmlFor="team-blue" className="text-team-blue font-semibold">
-                  Blue Team
+                  Blue Team {isTeamFull('blue') && '(Full)'}
                 </Label>
               </div>
             </RadioGroup>
           </div>
 
-          <div className="space-y-3">
-            <Label>Role</Label>
-            <RadioGroup
-              value={role}
-              onValueChange={(v) => setRole(v as 'spymaster' | 'operative')}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem 
-                  value="spymaster" 
-                  id="role-spymaster"
-                  disabled={isSlotTaken(team, 'spymaster')}
-                />
-                <Label htmlFor="role-spymaster">Spymaster</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem 
-                  value="operative" 
-                  id="role-operative"
-                  disabled={isSlotTaken(team, 'operative')}
-                />
-                <Label htmlFor="role-operative">Operative</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="vellum-agent">Vellum Agent ID</Label>
-            <Input
-              id="vellum-agent"
-              placeholder="Enter your Vellum Agent ID"
-              value={vellumAgentId}
-              onChange={(e) => setVellumAgentId(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vellum-key">Vellum API Key</Label>
-            <Input
-              id="vellum-key"
-              type="password"
-              placeholder="Enter your Vellum API Key"
-              value={vellumApiKey}
-              onChange={(e) => setVellumApiKey(e.target.value)}
-            />
+            <Label htmlFor="deployment">Vellum Workflow</Label>
+            {isLoadingDeployments ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading workflows...
+              </div>
+            ) : deploymentError ? (
+              <div className="flex items-center gap-2 text-sm text-destructive py-2">
+                <AlertCircle className="h-4 w-4" />
+                {deploymentError}
+              </div>
+            ) : deployments.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-2">
+                No workflow deployments found. Create one in Vellum first.
+              </div>
+            ) : (
+              <Select value={selectedDeployment} onValueChange={setSelectedDeployment}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a workflow..." />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border z-50">
+                  {deployments.map((deployment) => (
+                    <SelectItem key={deployment.id} value={deployment.id}>
+                      <div className="flex flex-col">
+                        <span>{deployment.label || deployment.name}</span>
+                        {deployment.description && (
+                          <span className="text-xs text-muted-foreground">{deployment.description}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <p className="text-xs text-muted-foreground">
-              Your API key is stored securely and used only for this game
+              Your Vellum API key from your profile will be used
             </p>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isJoining}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isJoining || isLoadingDeployments || !selectedDeployment || !!deploymentError}
+          >
             {isJoining ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
