@@ -6,11 +6,13 @@ import { GameBoard } from '@/components/GameBoard';
 import { TeamPanel } from '@/components/TeamPanel';
 import { JoinGamePanel } from '@/components/JoinGamePanel';
 import { ClueDisplay } from '@/components/ClueDisplay';
+import { GameControls } from '@/components/GameControls';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Play, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getRandomWords, generateWordAssignments, WordAssignment } from '@/lib/codenames-words';
+import { cn } from '@/lib/utils';
 
 export default function Game() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -44,10 +46,21 @@ export default function Game() {
   };
 
   const startGame = async () => {
-    if (players.length < 4) {
-      toast({ title: 'Not enough players', description: 'Need 4 players to start.', variant: 'destructive' });
+    // Validate we have all 4 roles filled
+    const redSpymaster = players.find(p => p.team === 'red' && p.role === 'spymaster');
+    const redOperative = players.find(p => p.team === 'red' && p.role === 'operative');
+    const blueSpymaster = players.find(p => p.team === 'blue' && p.role === 'spymaster');
+    const blueOperative = players.find(p => p.team === 'blue' && p.role === 'operative');
+
+    if (!redSpymaster || !redOperative || !blueSpymaster || !blueOperative) {
+      toast({ 
+        title: 'Missing players', 
+        description: 'Need all 4 roles filled (spymaster + operative for each team)', 
+        variant: 'destructive' 
+      });
       return;
     }
+
     setIsStarting(true);
     const words = getRandomWords(25);
     const startingTeam = Math.random() > 0.5 ? 'red' : 'blue';
@@ -85,7 +98,10 @@ export default function Game() {
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
             <h1 className="font-display text-xl font-bold">{game.name}</h1>
-            <Badge variant={game.status === 'waiting' ? 'secondary' : 'default'}>{game.status}</Badge>
+            <Badge variant={game.status === 'waiting' ? 'secondary' : game.status === 'finished' ? 'outline' : 'default'}>
+              {game.status === 'finished' && <Trophy className="h-3 w-3 mr-1" />}
+              {game.status}
+            </Badge>
           </div>
           {isHost && game.status === 'waiting' && (
             <Button onClick={startGame} disabled={isStarting || players.length < 4}>
@@ -102,17 +118,50 @@ export default function Game() {
             <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={game.current_team === 'red'} />
             <TeamPanel team="blue" players={bluePlayers} remainingWords={blueRemaining} isCurrentTeam={game.current_team === 'blue'} />
             {!myPlayer && game.status === 'waiting' && <JoinGamePanel gameId={gameId!} existingPlayers={players} onJoined={fetchGameData} />}
+            {game.status === 'in_progress' && (
+              <GameControls 
+                gameId={gameId!} 
+                currentTeam={game.current_team} 
+                currentPhase={game.current_phase} 
+                players={players} 
+                isHost={isHost}
+                winner={game.winner}
+              />
+            )}
           </div>
           <div className="lg:col-span-3 space-y-4">
-            {game.status === 'in_progress' && (
+            {(game.status === 'in_progress' || game.status === 'finished') && (
               <>
                 <ClueDisplay clue={game.current_clue} number={game.current_clue_number} currentTeam={game.current_team} guessesRemaining={game.guesses_remaining} />
-                <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={!myPlayer || myPlayer.role !== 'operative' || game.current_team !== myPlayer.team} />
+                <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
               </>
             )}
             {game.status === 'waiting' && (
               <div className="flex items-center justify-center h-96 border-2 border-dashed border-border rounded-lg">
-                <p className="text-muted-foreground">Waiting for players to join... ({players.length}/4)</p>
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">Waiting for players to join...</p>
+                  <p className="text-sm text-muted-foreground">
+                    {players.length}/4 players 
+                    {players.length >= 4 && isHost && ' - Ready to start!'}
+                  </p>
+                </div>
+              </div>
+            )}
+            {game.status === 'finished' && game.winner && (
+              <div className={cn(
+                "text-center py-8 rounded-lg border-2",
+                game.winner === 'red' ? "border-team-red bg-team-red/10" : "border-team-blue bg-team-blue/10"
+              )}>
+                <Trophy className={cn(
+                  "h-12 w-12 mx-auto mb-4",
+                  game.winner === 'red' ? "text-team-red" : "text-team-blue"
+                )} />
+                <h2 className={cn(
+                  "text-3xl font-display font-bold",
+                  game.winner === 'red' ? "text-team-red" : "text-team-blue"
+                )}>
+                  {game.winner.toUpperCase()} TEAM WINS!
+                </h2>
               </div>
             )}
           </div>
