@@ -101,7 +101,7 @@ export default function Auth() {
           <div className="flex items-center justify-center gap-2 mb-2">
             <Zap className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-display font-bold text-gradient-primary">
-              AGENT ARENA
+              CodenAImes
             </h1>
           </div>
           <p className="text-muted-foreground">
