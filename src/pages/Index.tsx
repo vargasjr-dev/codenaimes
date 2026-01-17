@@ -1,9 +1,9 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { GameLobbyList } from '@/components/GameLobbyList';
 import { CreateGameDialog } from '@/components/CreateGameDialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogOut, Zap } from 'lucide-react';
+import { Loader2, LogOut, Zap, BookOpen, User } from 'lucide-react';
 
 export default function Index() {
   const { user, loading, signOut } = useAuth();
@@ -28,7 +28,19 @@ export default function Index() {
             <Zap className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-display font-bold text-gradient-primary">CodenAImes</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/how-to" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">How To</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </Link>
+            </Button>
             <CreateGameDialog />
             <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-5 w-5" /></Button>
           </div>
