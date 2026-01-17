@@ -76,14 +76,41 @@ serve(async (req) => {
 
     const vellumData = await vellumResponse.json();
     
-    // Filter for workflow deployments (all active ones for now - can filter by interface later if needed)
-    const deployments = (vellumData.results || []).map((d: any) => ({
+    // Required input variables for Codenames game interface
+    const requiredInputs = [
+      "role",
+      "team", 
+      "words",
+      "word_assignments",
+      "revealed_words",
+      "current_team",
+      "current_clue",
+      "current_clue_number",
+      "guesses_remaining",
+      "game_phase"
+    ];
+    
+    // Filter deployments that have all required input variables
+    const compatibleDeployments = (vellumData.results || []).filter((d: any) => {
+      const inputVarNames = (d.input_variables || []).map((v: any) => v.key);
+      const hasAllInputs = requiredInputs.every(req => inputVarNames.includes(req));
+      
+      if (!hasAllInputs) {
+        console.log(`Deployment ${d.name} missing inputs:`, requiredInputs.filter(r => !inputVarNames.includes(r)));
+      }
+      
+      return hasAllInputs;
+    });
+
+    const deployments = compatibleDeployments.map((d: any) => ({
       id: d.id,
       name: d.name,
       label: d.label,
       description: d.description,
       created: d.created,
     }));
+
+    console.log(`Found ${vellumData.results?.length || 0} total deployments, ${deployments.length} compatible with Codenames interface`);
 
     return new Response(JSON.stringify({ deployments }), {
       status: 200,
