@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Settings } from 'lucide-react';
 
 interface VellumDeployment {
   id: string;
@@ -35,6 +36,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   const [isJoining, setIsJoining] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -196,9 +198,21 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
                 Loading workflows...
               </div>
             ) : deploymentError ? (
-              <div className="flex items-center gap-2 text-sm text-destructive py-2">
-                <AlertCircle className="h-4 w-4" />
-                {deploymentError}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {deploymentError}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/profile')}
+                  className="w-full"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configure API Key in Profile
+                </Button>
               </div>
             ) : deployments.length === 0 ? (
               <div className="text-sm text-muted-foreground py-2">
