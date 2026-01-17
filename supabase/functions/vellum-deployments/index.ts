@@ -76,30 +76,22 @@ serve(async (req) => {
 
     const vellumData = await vellumResponse.json();
     
-    // Required input variables for Codenames game interface
-    const requiredInputs = [
-      "role",
-      "team", 
-      "words",
-      "word_assignments",
-      "revealed_words",
-      "current_team",
-      "current_clue",
-      "current_clue_number",
-      "guesses_remaining",
-      "game_phase"
-    ];
-    
-    // Filter deployments that have all required input variables
+    // Filter deployments that have the expected interface:
+    // - One STRING input variable named "input"
     const compatibleDeployments = (vellumData.results || []).filter((d: any) => {
-      const inputVarNames = (d.input_variables || []).map((v: any) => v.key);
-      const hasAllInputs = requiredInputs.every(req => inputVarNames.includes(req));
+      const inputVars = d.input_variables || [];
       
-      if (!hasAllInputs) {
-        console.log(`Deployment ${d.name} missing inputs:`, requiredInputs.filter(r => !inputVarNames.includes(r)));
+      // Check for a STRING input variable named "input"
+      const hasInputVar = inputVars.some((v: any) => 
+        v.key === 'input' && v.type === 'STRING'
+      );
+      
+      if (!hasInputVar) {
+        console.log(`Deployment ${d.name} incompatible - needs STRING input variable named "input". Found:`, 
+          inputVars.map((v: any) => `${v.key}:${v.type}`).join(', '));
       }
       
-      return hasAllInputs;
+      return hasInputVar;
     });
 
     const deployments = compatibleDeployments.map((d: any) => ({
