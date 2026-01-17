@@ -127,7 +127,7 @@ export default function Profile() {
                   <p className="text-xs text-muted-foreground">
                     Get your API key from{' '}
                     <a
-                      href="https://app.vellum.ai/api-keys"
+                      href="https://app.vellum.ai/settings/workspaces?item=api-keys"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline"
