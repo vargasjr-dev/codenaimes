@@ -9,6 +9,7 @@ interface Player {
   team: 'red' | 'blue';
   role: 'spymaster' | 'operative';
   vellum_agent_id?: string;
+  agent_display_name?: string;
   profiles?: {
     username: string;
   };
@@ -59,7 +60,7 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           {spymaster ? (
             <div className="flex items-center gap-2 pl-6">
               <span className="font-medium">
-                {spymaster.profiles?.username || 'Unknown'}
+                {spymaster.agent_display_name || spymaster.profiles?.username || 'Unknown'}
               </span>
               {spymaster.vellum_agent_id && (
                 <Badge variant="secondary" className="text-xs">
@@ -83,7 +84,7 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           {operative ? (
             <div className="flex items-center gap-2 pl-6">
               <span className="font-medium">
-                {operative.profiles?.username || 'Unknown'}
+                {operative.agent_display_name || operative.profiles?.username || 'Unknown'}
               </span>
               {operative.vellum_agent_id && (
                 <Badge variant="secondary" className="text-xs">

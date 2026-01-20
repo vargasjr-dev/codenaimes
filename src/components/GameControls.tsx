@@ -160,7 +160,9 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
           {currentPlayer && (
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Agent</p>
-              <p className="text-sm font-mono truncate max-w-32">{currentPlayer.vellum_agent_id?.slice(0, 12)}...</p>
+              <p className="text-sm font-medium truncate max-w-32">
+                {currentPlayer.agent_display_name || currentPlayer.vellum_agent_id?.slice(0, 12) + '...'}
+              </p>
             </div>
           )}
         </div>

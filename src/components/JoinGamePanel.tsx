@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +31,7 @@ interface JoinGamePanelProps {
 export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePanelProps) {
   const [team, setTeam] = useState<'red' | 'blue'>('red');
   const [selectedDeployment, setSelectedDeployment] = useState('');
+  const [agentDisplayName, setAgentDisplayName] = useState('');
   const [deployments, setDeployments] = useState<VellumDeployment[]>([]);
   const [isLoadingDeployments, setIsLoadingDeployments] = useState(true);
   const [deploymentError, setDeploymentError] = useState<string | null>(null);
@@ -113,6 +115,15 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
       return;
     }
 
+    if (!agentDisplayName.trim()) {
+      toast({
+        title: 'Agent name required',
+        description: 'Please enter a display name for your agent.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsJoining(true);
 
     // Role will be assigned when game starts, just store 'pending' for now
@@ -124,6 +135,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
         team,
         role: 'pending', // Will be assigned at game start
         vellum_agent_id: selectedDeployment,
+        agent_display_name: agentDisplayName.trim(),
         // API key comes from profile, no need to store per-game
       });
 
@@ -242,10 +254,23 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="agentName">Agent Display Name</Label>
+            <Input
+              id="agentName"
+              placeholder="e.g., My Clever Agent, Test Bot v2..."
+              value={agentDisplayName}
+              onChange={(e) => setAgentDisplayName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Give your agent a unique name for this game
+            </p>
+          </div>
+
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isJoining || isLoadingDeployments || !selectedDeployment || !!deploymentError}
+            disabled={isJoining || isLoadingDeployments || !selectedDeployment || !agentDisplayName.trim() || !!deploymentError}
           >
             {isJoining ? (
               <>
