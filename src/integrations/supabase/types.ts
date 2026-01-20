@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       game_players: {
         Row: {
+          agent_display_name: string | null
           game_id: string
           id: string
           joined_at: string
@@ -26,6 +27,7 @@ export type Database = {
           vellum_api_key: string | null
         }
         Insert: {
+          agent_display_name?: string | null
           game_id: string
           id?: string
           joined_at?: string
@@ -36,6 +38,7 @@ export type Database = {
           vellum_api_key?: string | null
         }
         Update: {
+          agent_display_name?: string | null
           game_id?: string
           id?: string
           joined_at?: string
