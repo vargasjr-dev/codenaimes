@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, AlertCircle, Settings } from 'lucide-react';
+import { Loader2, AlertCircle, Settings, Zap } from 'lucide-react';
 
 interface VellumDeployment {
   id: string;
@@ -28,6 +28,13 @@ interface JoinGamePanelProps {
   onJoined: () => void;
 }
 
+const QUICK_FILL_NAMES = [
+  'Alpha Agent',
+  'Beta Agent', 
+  'Gamma Agent',
+  'Delta Agent',
+];
+
 export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePanelProps) {
   const [team, setTeam] = useState<'red' | 'blue'>('red');
   const [selectedDeployment, setSelectedDeployment] = useState('');
@@ -36,6 +43,8 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   const [isLoadingDeployments, setIsLoadingDeployments] = useState(true);
   const [deploymentError, setDeploymentError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isQuickFilling, setIsQuickFilling] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -43,8 +52,21 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   useEffect(() => {
     if (user) {
       fetchDeployments();
+      checkAdminStatus();
     }
   }, [user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('user_id', user.id)
+      .single();
+    
+    setIsAdmin(data?.is_admin ?? false);
+  };
 
   const fetchDeployments = async () => {
     setIsLoadingDeployments(true);
@@ -92,6 +114,81 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   };
 
   const isAlreadyJoined = existingPlayers.some(p => p.user_id === user?.id);
+
+  const handleQuickFillAll = async () => {
+    if (!user || !selectedDeployment) return;
+    
+    setIsQuickFilling(true);
+
+    try {
+      // Define the 4 spots: red spymaster, red operative, blue spymaster, blue operative
+      const spots = [
+        { team: 'red', index: 0 },
+        { team: 'red', index: 1 },
+        { team: 'blue', index: 2 },
+        { team: 'blue', index: 3 },
+      ];
+
+      // Filter out spots that are already filled
+      const redCount = existingPlayers.filter(p => p.team === 'red').length;
+      const blueCount = existingPlayers.filter(p => p.team === 'blue').length;
+      
+      const availableSpots = spots.filter(spot => {
+        if (spot.team === 'red') {
+          return spot.index - 0 < 2 - redCount;
+        } else {
+          return spot.index - 2 < 2 - blueCount;
+        }
+      });
+
+      if (availableSpots.length === 0) {
+        toast({
+          title: 'All spots filled',
+          description: 'All team positions are already taken.',
+          variant: 'destructive',
+        });
+        setIsQuickFilling(false);
+        return;
+      }
+
+      // Insert all players at once
+      const inserts = availableSpots.map((spot, i) => ({
+        game_id: gameId,
+        user_id: user.id,
+        team: spot.team,
+        role: 'pending',
+        vellum_agent_id: selectedDeployment,
+        agent_display_name: QUICK_FILL_NAMES[spot.index],
+      }));
+
+      const { error } = await supabase
+        .from('game_players')
+        .insert(inserts);
+
+      if (error) {
+        toast({
+          title: 'Failed to fill spots',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'All spots filled!',
+          description: `Added ${inserts.length} agents to the game.`,
+        });
+        onJoined();
+      }
+    } catch (error) {
+      console.error('Error quick filling:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fill all spots.',
+        variant: 'destructive',
+      });
+    }
+
+    setIsQuickFilling(false);
+  };
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,9 +255,11 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
     setIsJoining(false);
   };
 
-  if (isAlreadyJoined) {
+  if (isAlreadyJoined && !isAdmin) {
     return null;
   }
+
+  const allSpotsFilled = existingPlayers.length >= 4;
 
   return (
     <Card className="card-glow">
@@ -267,20 +366,44 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
             </p>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isJoining || isLoadingDeployments || !selectedDeployment || !agentDisplayName.trim() || !!deploymentError}
-          >
-            {isJoining ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Joining...
-              </>
-            ) : (
-              'Join Game'
-            )}
-          </Button>
+          {!allSpotsFilled && (
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isJoining || isLoadingDeployments || !selectedDeployment || !agentDisplayName.trim() || !!deploymentError}
+            >
+              {isJoining ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                'Join Game'
+              )}
+            </Button>
+          )}
+
+          {isAdmin && !allSpotsFilled && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={handleQuickFillAll}
+              disabled={isQuickFilling || isLoadingDeployments || !selectedDeployment || !!deploymentError}
+            >
+              {isQuickFilling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Filling all spots...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Quick Fill All Spots (Dev)
+                </>
+              )}
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>
