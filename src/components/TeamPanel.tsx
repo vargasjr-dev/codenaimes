@@ -7,7 +7,7 @@ interface Player {
   id: string;
   user_id: string;
   team: 'red' | 'blue';
-  role: 'spymaster' | 'operative';
+  role: 'spymaster' | 'operative' | 'pending';
   vellum_agent_id?: string;
   agent_display_name?: string;
   profiles?: {
@@ -23,8 +23,10 @@ interface TeamPanelProps {
 }
 
 export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: TeamPanelProps) {
-  const spymaster = players.find(p => p.role === 'spymaster');
-  const operative = players.find(p => p.role === 'operative');
+  // For pending players (before game starts), show them in order as they'll be assigned roles
+  const pendingPlayers = players.filter(p => p.role === 'pending');
+  const spymaster = players.find(p => p.role === 'spymaster') || pendingPlayers[0];
+  const operative = players.find(p => p.role === 'operative') || pendingPlayers[1];
 
   return (
     <Card className={cn(
