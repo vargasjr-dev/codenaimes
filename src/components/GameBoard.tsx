@@ -55,7 +55,7 @@ export function GameBoard({
   };
 
   return (
-    <div className="grid grid-cols-5 gap-3 p-4">
+    <div className="grid grid-cols-5 gap-1 sm:gap-2 md:gap-3 p-1 sm:p-2 md:p-4">
       {words.map((word, index) => (
         <button
           key={`${word}-${index}`}
@@ -67,7 +67,7 @@ export function GameBoard({
           onClick={() => !disabled && !revealedWords.includes(word) && onWordClick?.(word)}
           disabled={disabled || revealedWords.includes(word)}
         >
-          <span className="text-sm font-semibold tracking-wide uppercase">
+          <span className="text-[8px] xs:text-[10px] sm:text-xs md:text-sm font-semibold tracking-tight sm:tracking-wide uppercase break-words leading-tight">
             {word}
           </span>
         </button>
