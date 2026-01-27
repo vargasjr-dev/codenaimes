@@ -302,7 +302,7 @@ async function callVellumAgent(apiKey: string, agentId: string, prompt: string):
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Vellum API error:', response.status, errorText);
-    throw new Error(`Vellum API error: ${response.status}`);
+    throw new Error(`Vellum API error: ${response.status} - ${errorText}`);
   }
 
   // Handle streaming response
@@ -311,27 +311,70 @@ async function callVellumAgent(apiKey: string, agentId: string, prompt: string):
 
   let fullResponse = '';
   const decoder = new TextDecoder();
+  let buffer = '';
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || ''; // Keep incomplete line in buffer
     
     for (const line of lines) {
       if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr || jsonStr === '[DONE]') continue;
+        
         try {
-          const data = JSON.parse(line.slice(6));
-          if (data.type === 'WORKFLOW_OUTPUT' && data.data?.output?.value) {
-            fullResponse += data.data.output.value;
+          const data = JSON.parse(jsonStr);
+          console.log('Vellum stream event type:', data.type);
+          
+          // Handle different output formats from Vellum
+          if (data.type === 'WORKFLOW_OUTPUT') {
+            const output = data.data?.output;
+            if (output?.value) {
+              fullResponse += output.value;
+            } else if (typeof output === 'string') {
+              fullResponse += output;
+            }
+          } else if (data.type === 'NODE_OUTPUT') {
+            // Some workflows emit NODE_OUTPUT with final output
+            const output = data.data?.output;
+            if (output?.value) {
+              fullResponse += output.value;
+            }
+          } else if (data.type === 'STREAMING') {
+            // Handle streaming text chunks
+            const output = data.data?.output;
+            if (output?.value) {
+              fullResponse += output.value;
+            }
           }
-        } catch {
-          // Ignore parse errors for incomplete JSON
+        } catch (e) {
+          console.log('Failed to parse Vellum chunk:', jsonStr.slice(0, 100));
         }
       }
     }
   }
+
+  // Process any remaining buffer
+  if (buffer.startsWith('data: ')) {
+    const jsonStr = buffer.slice(6).trim();
+    if (jsonStr && jsonStr !== '[DONE]') {
+      try {
+        const data = JSON.parse(jsonStr);
+        if (data.type === 'WORKFLOW_OUTPUT' && data.data?.output?.value) {
+          fullResponse += data.data.output.value;
+        }
+      } catch {
+        // Ignore
+      }
+    }
+  }
+
+  console.log('Final Vellum response length:', fullResponse.length);
+  console.log('Final Vellum response:', fullResponse.slice(0, 500));
 
   return fullResponse;
 }
