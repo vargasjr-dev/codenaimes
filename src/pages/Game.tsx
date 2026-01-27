@@ -157,12 +157,21 @@ export default function Game() {
             )}
             {game.status === 'waiting' && (
               <div className="flex items-center justify-center h-96 border-2 border-dashed border-border rounded-lg">
-                <div className="text-center">
+                <div className="text-center space-y-4">
                   <p className="text-muted-foreground mb-2">Waiting for players to join...</p>
                   <p className="text-sm text-muted-foreground">
                     {players.length}/4 players 
-                    {players.length >= 4 && isHost && ' - Ready to start!'}
+                    {players.length >= 4 && ' - Ready to start!'}
                   </p>
+                  {players.length >= 4 && isHost && (
+                    <Button onClick={startGame} disabled={isStarting} size="lg" className="mt-4">
+                      {isStarting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Play className="mr-2 h-5 w-5" />}
+                      Start Game
+                    </Button>
+                  )}
+                  {players.length >= 4 && !isHost && (
+                    <p className="text-sm text-muted-foreground italic">Waiting for host to start...</p>
+                  )}
                 </div>
               </div>
             )}
