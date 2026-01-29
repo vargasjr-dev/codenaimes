@@ -281,100 +281,69 @@ The guess MUST be exactly one of the unrevealed words listed above, or "PASS".`;
 });
 
 async function callVellumAgent(apiKey: string, agentId: string, prompt: string): Promise<string> {
-  const response = await fetch('https://predict.vellum.ai/v1/execute-workflow-stream', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': apiKey,
-    },
-    body: JSON.stringify({
-      workflow_deployment_id: agentId,
-      inputs: [
-        {
-          name: 'input',
-          type: 'STRING',
-          value: prompt,
-        },
-      ],
-    }),
-  });
+  // Use non-streaming endpoint with 30 second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Vellum API error:', response.status, errorText);
-    throw new Error(`Vellum API error: ${response.status} - ${errorText}`);
-  }
+  try {
+    const response = await fetch('https://predict.vellum.ai/v1/execute-workflow', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': apiKey,
+      },
+      body: JSON.stringify({
+        workflow_deployment_id: agentId,
+        inputs: [
+          {
+            name: 'input',
+            type: 'STRING',
+            value: prompt,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
 
-  // Handle streaming response
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('No response body');
+    clearTimeout(timeoutId);
 
-  let fullResponse = '';
-  const decoder = new TextDecoder();
-  let buffer = '';
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Vellum API error:', response.status, errorText);
+      throw new Error(`Vellum API error: ${response.status} - ${errorText}`);
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    const result = await response.json();
+    console.log('Vellum response:', JSON.stringify(result, null, 2).slice(0, 1000));
+
+    // Extract output from the workflow execution result
+    // The response structure is: { data: { outputs: [{ name: string, value: string }] } }
+    const outputs = result.data?.outputs || [];
     
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || ''; // Keep incomplete line in buffer
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const jsonStr = line.slice(6).trim();
-        if (!jsonStr || jsonStr === '[DONE]') continue;
-        
-        try {
-          const data = JSON.parse(jsonStr);
-          console.log('Vellum stream event type:', data.type);
-          
-          // Handle different output formats from Vellum
-          if (data.type === 'WORKFLOW_OUTPUT') {
-            const output = data.data?.output;
-            if (output?.value) {
-              fullResponse += output.value;
-            } else if (typeof output === 'string') {
-              fullResponse += output;
-            }
-          } else if (data.type === 'NODE_OUTPUT') {
-            // Some workflows emit NODE_OUTPUT with final output
-            const output = data.data?.output;
-            if (output?.value) {
-              fullResponse += output.value;
-            }
-          } else if (data.type === 'STREAMING') {
-            // Handle streaming text chunks
-            const output = data.data?.output;
-            if (output?.value) {
-              fullResponse += output.value;
-            }
-          }
-        } catch (e) {
-          console.log('Failed to parse Vellum chunk:', jsonStr.slice(0, 100));
-        }
+    // Find the output with the response (commonly named "output" or "final_output")
+    for (const output of outputs) {
+      if (output.value && typeof output.value === 'string') {
+        console.log(`Found output "${output.name}":`, output.value.slice(0, 500));
+        return output.value;
       }
     }
-  }
 
-  // Process any remaining buffer
-  if (buffer.startsWith('data: ')) {
-    const jsonStr = buffer.slice(6).trim();
-    if (jsonStr && jsonStr !== '[DONE]') {
-      try {
-        const data = JSON.parse(jsonStr);
-        if (data.type === 'WORKFLOW_OUTPUT' && data.data?.output?.value) {
-          fullResponse += data.data.output.value;
-        }
-      } catch {
-        // Ignore
+    // If no string output found, try to find any output with a value property
+    for (const output of outputs) {
+      if (output.value?.value && typeof output.value.value === 'string') {
+        console.log(`Found nested output "${output.name}":`, output.value.value.slice(0, 500));
+        return output.value.value;
       }
     }
+
+    // Fallback: stringify all outputs for debugging
+    console.error('Could not find string output in Vellum response. Outputs:', JSON.stringify(outputs));
+    throw new Error('No valid output found in Vellum response');
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Vellum API request timed out after 30 seconds');
+    }
+    throw error;
   }
-
-  console.log('Final Vellum response length:', fullResponse.length);
-  console.log('Final Vellum response:', fullResponse.slice(0, 500));
-
-  return fullResponse;
 }
