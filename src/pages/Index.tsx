@@ -54,6 +54,12 @@ export default function Index() {
         </div>
         <GameLobbyList />
       </main>
+
+      <footer className="border-t border-border mt-12 py-6">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>&copy; 2026 VargasJR LLC. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }
