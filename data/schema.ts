@@ -66,6 +66,16 @@ export const gamePlayers = pgTable("game_players", {
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const gameEvents = pgTable("game_events", {
+  id: uuid("id").notNull().defaultRandom().primaryKey(),
+  gameId: uuid("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  team: text("team"),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   gamePlayers: many(gamePlayers),

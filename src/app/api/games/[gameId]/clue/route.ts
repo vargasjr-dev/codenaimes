@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@data/db";
+import { gameEvents, gamePlayers, games } from "@data/schema";
+import { getCurrentUser } from "@/server/auth";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ gameId: string }> },
+) {
+  const { gameId } = await params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+  if (!game) {
+    return NextResponse.json({ error: "Game not found" }, { status: 404 });
+  }
+  if (game.status !== "in_progress") {
+    return NextResponse.json({ error: "Game is not in progress" }, { status: 400 });
+  }
+  if (game.currentPhase !== "spymaster_clue") {
+    return NextResponse.json({ error: "It is not clue time" }, { status: 400 });
+  }
+
+  const players = await db.select().from(gamePlayers).where(eq(gamePlayers.gameId, gameId));
+  const spymaster = players.find(
+    (p) => p.team === game.currentTeam && p.role === "spymaster",
+  );
+  if (!spymaster) {
+    return NextResponse.json({ error: "Spymaster not found" }, { status: 400 });
+  }
+  if (spymaster.userId !== user.id) {
+    return NextResponse.json({ error: "You are not the spymaster" }, { status: 403 });
+  }
+  if (spymaster.isAgent) {
+    return NextResponse.json({ error: "Use the Step button for agent turns" }, { status: 400 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const word = typeof body.word === "string" ? body.word.trim().toUpperCase() : "";
+  const number = Number(body.number);
+
+  if (!word || !/^[A-Z]+$/.test(word)) {
+    return NextResponse.json({ error: "Clue must be a single word (letters only)" }, { status: 400 });
+  }
+  if (!Number.isInteger(number) || number < 1 || number > 8) {
+    return NextResponse.json({ error: "Number must be between 1 and 8" }, { status: 400 });
+  }
+
+  const boardWords = ((game.words as string[]) ?? []).map((w) => w.toUpperCase());
+  if (boardWords.includes(word)) {
+    return NextResponse.json({ error: "Clue cannot be a word on the board" }, { status: 400 });
+  }
+
+  await db
+    .update(games)
+    .set({
+      currentClue: word,
+      currentClueNumber: number,
+      guessesRemaining: number + 1, // +1 bonus guess
+      currentPhase: "operative_guess",
+      updatedAt: new Date(),
+    })
+    .where(eq(games.id, gameId));
+
+  await db.insert(gameEvents).values({
+    gameId,
+    team: game.currentTeam,
+    description: `${game.currentTeam} spymaster gave clue "${word}" (${number})`,
+  });
+
+  return NextResponse.json({ success: true, clue: word, number });
+}

@@ -12,9 +12,17 @@ interface ClueDisplayProps {
 export function ClueDisplay({ clue, number, currentTeam, guessesRemaining }: ClueDisplayProps) {
   if (!clue) {
     return (
-      <Card className="bg-muted/50">
-        <CardContent className="py-4 text-center">
-          <p className="text-muted-foreground">Waiting for clue...</p>
+      <Card className={cn(
+        "border-2 bg-muted/30",
+        currentTeam === 'red' ? "border-team-red/60" : "border-team-blue/60"
+      )}>
+        <CardContent className="py-3 text-center">
+          <p className={cn(
+            "text-sm font-medium",
+            currentTeam === 'red' ? "text-team-red" : "text-team-blue"
+          )}>
+            {currentTeam ? `${currentTeam.toUpperCase()} spymaster is thinking...` : "Waiting for clue..."}
+          </p>
         </CardContent>
       </Card>
     );

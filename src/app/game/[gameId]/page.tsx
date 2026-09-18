@@ -179,6 +179,7 @@ export default function Game() {
               players={players}
               isHost={isHost}
               winner={game.winner}
+              myPlayer={myPlayer ? { team: myPlayer.team, role: myPlayer.role, isAgent: myPlayer.isAgent } : null}
               onStateChange={fetchGameData}
             />
           </div>
