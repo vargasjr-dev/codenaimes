@@ -20,7 +20,7 @@ export async function GET(
       userId: gamePlayers.userId,
       team: gamePlayers.team,
       role: gamePlayers.role,
-      vellumAgentId: gamePlayers.vellumAgentId,
+      isAgent: gamePlayers.isAgent,
       agentDisplayName: gamePlayers.agentDisplayName,
       username: users.username,
     })

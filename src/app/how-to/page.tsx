@@ -1,41 +1,11 @@
 "use client";
 
-import { ArrowLeft, Code, Zap, Users, Target, MessageSquare, Copy, Check } from "lucide-react";
+import { ArrowLeft, Users, Zap, Link2, Bot } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const HowTo = () => {
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-
-  const agentBuilderPrompt = `Create a Vellum workflow for playing Codenames as either a Spymaster or Operative.
-
-The workflow should:
-1. Accept a single STRING input variable named "input" containing the game state and instructions
-2. Return a STRING output with a JSON response
-
-For Spymaster role:
-- Parse the input to identify: team words, opposing words, neutral words, and assassin word
-- Generate a strategic one-word clue that links multiple team words
-- Avoid clues that could lead to opposing, neutral, or assassin words
-- Return JSON: {"clue": "WORD", "number": N}
-
-For Operative role:
-- Parse the input to get: current clue, clue number, unrevealed words, remaining guesses
-- Analyze which unrevealed word best matches the clue
-- Can return "PASS" if uncertain
-- Return JSON: {"guess": "WORD"} or {"guess": "PASS"}
-
-The workflow should handle both roles based on the input context.`;
-
-  const copyPrompt = async () => {
-    await navigator.clipboard.writeText(agentBuilderPrompt);
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -51,303 +21,88 @@ The workflow should handle both roles based on the input context.`;
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold mb-4">
-            Agent <span className="text-primary">Integration Guide</span>
+            How to <span className="text-primary">Play</span>
           </h1>
           <p className="text-lg text-muted-foreground">
-            Learn how to configure your Vellum workflow deployment to compete in Codenaimes.
+            Everything you need to set up a room and start playing CodenAImes.
           </p>
         </div>
 
-        {/* Workflow Interface Section */}
+        {/* Creating a room */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Code className="w-5 h-5 text-primary" />
-              Workflow Interface
+              <Zap className="w-5 h-5 text-primary" />
+              Creating a Room
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground">
-              Your Vellum workflow deployment must accept a specific input and return a structured JSON output.
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              From the home page, enter your name and hit <strong>Play as Guest</strong> — no
+              account required. Then click <strong>Create Room</strong>.
             </p>
-
-            <Alert>
-              <AlertDescription>
-                <strong>Important:</strong> Your workflow must have exactly one input variable named{" "}
-                <code className="px-1.5 py-0.5 bg-muted rounded text-sm">input</code> of type{" "}
-                <code className="px-1.5 py-0.5 bg-muted rounded text-sm">STRING</code> and return a{" "}
-                <code className="px-1.5 py-0.5 bg-muted rounded text-sm">STRING</code> output containing JSON.
-              </AlertDescription>
-            </Alert>
-
-            {/* Input Format */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                Input Format <span className="text-muted-foreground font-normal text-sm">(variable name: input)</span>
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                The input is a natural language prompt containing all game context. Your agent will receive different prompts based on its role:
-              </p>
-              <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`For Spymaster (give_clue action):
-- Team words to target
-- Opposing team words to avoid
-- Neutral words
-- Assassin word (NEVER lead to this)
-- Instructions for clue format
-
-For Operative (make_guess action):
-- Current clue and number
-- Unrevealed words on board
-- Remaining guesses
-- Instructions for guess format`}
-              </pre>
-            </div>
-
-            {/* Output Schemas */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                Output Schemas <span className="text-muted-foreground font-normal text-sm">(JSON in string output)</span>
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2 text-primary">Spymaster Response</h4>
-                  <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`{
-  "clue": "string",    // Single word, no spaces/hyphens
-  "number": number     // How many words this clue relates to
-}`}
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2 text-primary">Operative Response</h4>
-                  <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`{
-  "guess": "string"    // One of the unrevealed words, or "PASS"
-}`}
-                  </pre>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Start */}
-            <div className="pt-4 border-t">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-primary" />
-                Quick Start with Agent Builder
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Copy this prompt and paste it into Vellum's Agent Builder to automatically generate a compatible Codenaimes agent workflow.
-              </p>
-              <Button onClick={copyPrompt} variant="outline" className="gap-2">
-                {copiedPrompt ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    Copy Prompt
-                  </>
-                )}
-              </Button>
-            </div>
+            <p>
+              Once the room is created, use the <strong>Share</strong> button to copy an invite
+              link. Anyone with the link can join the room without making an account — they just
+              enter their name.
+            </p>
           </CardContent>
         </Card>
 
-        {/* Game Phases Section */}
+        {/* Playing with Jev */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              Game Phases
+              <Bot className="w-5 h-5 text-primary" />
+              Playing with Jev
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Spymaster Clue */}
-            <div className="border-l-4 border-primary pl-4">
-              <h3 className="font-semibold text-lg">spymaster_clue</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-2">
-                action: <code className="px-1.5 py-0.5 bg-muted rounded">"give_clue"</code>
-              </p>
-              <p className="text-sm">
-                The current team's Spymaster analyzes the board and provides a one-word clue with a number.
-                The clue should link multiple team words while avoiding opposing, neutral, and assassin words.
-              </p>
-            </div>
-
-            {/* Operative Guess */}
-            <div className="border-l-4 border-secondary pl-4">
-              <h3 className="font-semibold text-lg">operative_guess</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-2">
-                action: <code className="px-1.5 py-0.5 bg-muted rounded">"make_guess"</code>
-              </p>
-              <p className="text-sm">
-                The Operative receives the clue and selects words from the board. They get <code className="px-1 bg-muted rounded">number + 1</code> guesses.
-                They can choose to <code className="px-1 bg-muted rounded">"PASS"</code> to safely end the turn.
-              </p>
-            </div>
-
-            {/* Turn End */}
-            <div className="border-l-4 border-muted pl-4">
-              <h3 className="font-semibold text-lg">Turn Transitions</h3>
-              <p className="text-sm mt-2">
-                The turn ends when:
-              </p>
-              <ul className="list-disc list-inside text-sm mt-2 space-y-1 text-muted-foreground">
-                <li>Operative guesses a wrong word (neutral or opposing team)</li>
-                <li>Operative uses all guesses</li>
-                <li>Operative chooses to PASS</li>
-                <li>Operative finds the assassin (game over!)</li>
-              </ul>
-            </div>
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              Don't have four people? Add <strong>Jev</strong> — an AI player powered by TypeSafe's
+              System One model — to any open seat. In the join panel, pick a team and click{" "}
+              <strong>Add Jev Agent to Team</strong>.
+            </p>
+            <p>
+              Jev plays both roles: as Spymaster it picks the strongest legal clue from a candidate
+              word list, and as Operative it chooses which board word to guess (or passes). It
+              reasons with calibrated probabilities, so expect measured, conservative play.
+            </p>
           </CardContent>
         </Card>
 
-        {/* Team Information */}
+        {/* Game rules */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
-              Team Structure
+              The Rules
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-lg text-red-500 mb-3">🔴 Red Team</h3>
-                <ul className="space-y-2 text-sm">
-                  <li><strong>Spymaster:</strong> Sees all word colors, gives clues</li>
-                  <li><strong>Operative:</strong> Guesses words based on clues</li>
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Red team starts first and has 9 words to find
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg text-blue-500 mb-3">🔵 Blue Team</h3>
-                <ul className="space-y-2 text-sm">
-                  <li><strong>Spymaster:</strong> Sees all word colors, gives clues</li>
-                  <li><strong>Operative:</strong> Guesses words based on clues</li>
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Blue team goes second and has 8 words to find
-                </p>
-              </div>
-            </div>
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              Two teams of two. On each team, the <strong>Spymaster</strong> sees the secret
+              identities of the 25 board words and gives a one-word clue plus a number. The{" "}
+              <strong>Operative</strong> then guesses which words the clue points to.
+            </p>
+            <p>
+              Guess your team's words to reveal them. Hit an opposing word and your turn ends
+              early; hit a neutral word and your turn ends; hit the <strong>assassin</strong> word
+              and your team loses instantly. First team to reveal all of its words wins.
+            </p>
+            <p>
+              Teams may have a human or Jev in either seat — mix and match however you like.
+            </p>
           </CardContent>
         </Card>
 
-        {/* Word Distribution */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Board Setup (25 Words)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/30">
-                <div className="text-2xl font-bold text-red-500">9</div>
-                <div className="text-sm text-muted-foreground">Red Words</div>
-              </div>
-              <div className="p-4 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                <div className="text-2xl font-bold text-blue-500">8</div>
-                <div className="text-sm text-muted-foreground">Blue Words</div>
-              </div>
-              <div className="p-4 rounded-lg bg-muted border">
-                <div className="text-2xl font-bold">7</div>
-                <div className="text-sm text-muted-foreground">Neutral</div>
-              </div>
-              <div className="p-4 rounded-lg bg-neutral-900 border border-neutral-700">
-                <div className="text-2xl font-bold text-neutral-300">1</div>
-                <div className="text-sm text-neutral-400">Assassin</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Example Responses */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary" />
-              Example Responses
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2 text-muted-foreground">// Spymaster giving a clue</h4>
-              <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`{
-  "clue": "OCEAN",
-  "number": 3
-}
-// Links: WAVE, BEACH, SHIP`}
-              </pre>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2 text-muted-foreground">// Operative making a guess</h4>
-              <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`{
-  "guess": "WAVE"
-}
-// Correct! 2 guesses remaining`}
-              </pre>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2 text-muted-foreground">// Operative passing</h4>
-              <pre className="bg-muted/50 border rounded-lg p-4 overflow-x-auto text-sm">
-{`{
-  "guess": "PASS"
-}
-// Safely ends turn, other team goes`}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Win Conditions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Win Conditions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Find All Words:</strong>
-                  <p className="text-sm text-muted-foreground">First team to reveal all their words wins</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-red-500 text-xl">✗</span>
-                <div>
-                  <strong>Assassin:</strong>
-                  <p className="text-sm text-muted-foreground">Guessing the assassin word immediately loses the game for your team</p>
-                </div>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="mt-12 text-center text-muted-foreground text-sm">
-          <p>
-            Need help? Check out the{" "}
-            <a
-              href="https://docs.vellum.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Vellum Documentation
-            </a>
-          </p>
+        <div className="text-center">
+          <Link href="/">
+            <Button size="lg" className="gap-2">
+              <Link2 className="w-4 h-4" />
+              Create a Room
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

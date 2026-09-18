@@ -8,9 +8,9 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type SessionUser = {
   id: string;
-  email: string;
+  email: string | null;
   username: string;
-  isAdmin: boolean;
+  isGuest: boolean;
 };
 
 export async function createSession(userId: string) {
@@ -46,7 +46,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       id: users.id,
       email: users.email,
       username: users.username,
-      isAdmin: users.isAdmin,
+      isGuest: users.isGuest,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))

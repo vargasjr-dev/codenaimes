@@ -11,10 +11,11 @@ import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").notNull().defaultRandom().primaryKey(),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  // Guests have no email or password — they identify by session cookie alone.
+  email: text("email").unique(),
+  passwordHash: text("password_hash"),
   username: text("username").notNull(),
-  vellumApiKey: text("vellum_api_key"),
+  isGuest: boolean("is_guest").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -59,7 +60,8 @@ export const gamePlayers = pgTable("game_players", {
     .references(() => users.id, { onDelete: "cascade" }),
   team: text("team").notNull(),
   role: text("role").notNull().default("pending"),
-  vellumAgentId: text("vellum_agent_id"),
+  // Agent players (e.g. Jev) sit in a seat in place of a human.
+  isAgent: boolean("is_agent").notNull().default(false),
   agentDisplayName: text("agent_display_name"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
 });

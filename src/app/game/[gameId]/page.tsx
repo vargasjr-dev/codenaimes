@@ -10,7 +10,7 @@ import { ClueDisplay } from "@/components/ClueDisplay";
 import { GameControls } from "@/components/GameControls";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Loader2, Trophy } from "lucide-react";
+import { ArrowLeft, Play, Loader2, Trophy, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WordAssignment } from "@/lib/codenames-words";
 import { cn } from "@/lib/utils";
@@ -36,8 +36,8 @@ type PlayerRecord = {
   userId: string;
   team: 'red' | 'blue';
   role: 'spymaster' | 'operative' | 'pending';
-  vellumAgentId: string | null;
   agentDisplayName: string | null;
+  isAgent?: boolean;
   username: string;
 };
 
@@ -50,6 +50,7 @@ export default function Game() {
   const [players, setPlayers] = useState<PlayerRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const fetchGameData = useCallback(async () => {
     if (!gameId) return;
@@ -97,7 +98,7 @@ export default function Game() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!game) return <div className="min-h-screen flex items-center justify-center"><p>Game not found</p></div>;
 
-  const myPlayer = players.find(p => p.userId === user?.id);
+  const myPlayer = players.find(p => p.userId === user?.id && !p.isAgent);
   const isHost = game.hostUserId === user?.id;
   const redPlayers = players.filter(p => p.team === 'red');
   const bluePlayers = players.filter(p => p.team === 'blue');
@@ -119,12 +120,29 @@ export default function Game() {
               {game.status}
             </Badge>
           </div>
+          <div className="flex items-center gap-2">
+            {game.status === 'waiting' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
+                }}
+              >
+                {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
+                {linkCopied ? 'Copied!' : 'Share'}
+              </Button>
+            )}
           {isHost && game.status === 'waiting' && (
             <Button onClick={startGame} disabled={isStarting || players.length < 4}>
               {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
               Start Game
             </Button>
           )}
+          </div>
         </div>
       </header>
 

@@ -8,7 +8,7 @@ interface Player {
   userId: string;
   team: 'red' | 'blue';
   role: 'spymaster' | 'operative' | 'pending';
-  vellumAgentId?: string | null;
+  isAgent?: boolean;
   agentDisplayName?: string | null;
   username?: string;
 }
@@ -62,7 +62,7 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
               <span className="font-medium">
                 {spymaster.agentDisplayName || spymaster.username || 'Unknown'}
               </span>
-              {spymaster.vellumAgentId && (
+              {spymaster.isAgent && (
                 <Badge variant="secondary" className="text-xs">
                   <Bot className="h-3 w-3 mr-1" />
                   AI
@@ -86,7 +86,7 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
               <span className="font-medium">
                 {operative.agentDisplayName || operative.username || 'Unknown'}
               </span>
-              {operative.vellumAgentId && (
+              {operative.isAgent && (
                 <Badge variant="secondary" className="text-xs">
                   <Bot className="h-3 w-3 mr-1" />
                   AI
