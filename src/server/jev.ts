@@ -27,7 +27,13 @@ type ScoreQuestion = {
   criteria: string[];
 };
 
-type JevQuestion = ChoiceQuestion | ScoreQuestion;
+type JevQuestion = ChoiceQuestion | ScoreQuestion | NoulQuestion;
+
+type NoulQuestion = {
+  type: "noul";
+  instructions: string;
+  criteria?: { true?: string; false?: string };
+};
 
 type JevChoiceAnswer = {
   type: "choice";
@@ -43,9 +49,14 @@ type JevScoreAnswer = {
   confidence: number;
 };
 
+type JevNoulAnswer = {
+  type: "noul";
+  noul: number;
+};
+
 type JevResponse = {
   model: string;
-  answers: Record<string, JevChoiceAnswer | JevScoreAnswer>;
+  answers: Record<string, JevChoiceAnswer | JevScoreAnswer | JevNoulAnswer>;
   usage?: { input_tokens: number; output_tokens: number };
 };
 
@@ -76,7 +87,7 @@ export const CLUE_VOCABULARY = [
   "WALK", "WALL", "WAVE", "WHEEL", "WIND", "WOLF", "WOOD", "WORLD", "ZONE",
 ];
 
-export type JevAnswers = Record<string, JevChoiceAnswer | JevScoreAnswer>;
+export type JevAnswers = Record<string, JevChoiceAnswer | JevScoreAnswer | JevNoulAnswer>;
 
 /** Evaluate a question map against a state in a single TypeSafe API call. */
 export async function askJev(

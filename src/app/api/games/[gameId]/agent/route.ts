@@ -178,18 +178,23 @@ export async function POST(
     moveHistory: historyLines,
   };
 
-  const options: Record<string, string | null> = Object.fromEntries(
-    unrevealedWords.map((w) => [w, null]),
-  );
-  options["PASS"] = "End the turn safely without guessing";
-
   const answers = await askJev(state, {
     guess: {
       type: "choice",
       instructions:
-        `Which unrevealed word is most likely to belong to your team based on the clue ` +
-        `"${game.currentClue}"? Choose PASS if no word fits well.`,
-      criteria: options,
+        `Which unrevealed word is most strongly associated with the clue "${game.currentClue}"? ` +
+        `Consider every unrevealed word and pick the single best match.`,
+      criteria: Object.fromEntries(unrevealedWords.map((w) => [w, null])),
+    },
+    should_guess: {
+      type: "noul",
+      instructions:
+        `Is there at least one unrevealed word on the board strongly enough associated ` +
+        `with the clue "${game.currentClue}" to justify making a guess this turn?`,
+      criteria: {
+        "true": "Yes — at least one board word is a good match for the clue",
+        "false": "No — nothing on the board fits the clue well; passing is the better play",
+      },
     },
   });
 
