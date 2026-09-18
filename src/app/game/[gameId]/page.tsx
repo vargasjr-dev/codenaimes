@@ -125,30 +125,35 @@ export default function Game() {
       </header>
 
       <main className="container mx-auto px-3 py-3">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-          <div className="lg:col-span-1 space-y-2">
-            <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={game.currentTeam === 'red'} />
-            <TeamPanel team="blue" players={bluePlayers} remainingWords={blueRemaining} isCurrentTeam={game.currentTeam === 'blue'} />
-            {game.status === 'waiting' && <JoinGamePanel gameId={gameId as string} existingPlayers={players} onJoined={fetchGameData} />}
-            {game.status === 'in_progress' && (
-              <GameControls
-                gameId={gameId as string}
-                currentTeam={game.currentTeam as 'red' | 'blue' | null}
-                currentPhase={game.currentPhase}
-                players={players}
-                isHost={isHost}
-                winner={game.winner}
-                onStateChange={fetchGameData}
-              />
-            )}
+        {game.status === 'waiting' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+            <div className="lg:col-span-1 space-y-2">
+              <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={false} />
+              <TeamPanel team="blue" players={bluePlayers} remainingWords={blueRemaining} isCurrentTeam={false} />
+              <JoinGamePanel gameId={gameId as string} existingPlayers={players} onJoined={fetchGameData} />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
+                }}
+              >
+                {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
+                {linkCopied ? 'Link Copied!' : 'Share Room Link'}
+              </Button>
+            </div>
+            <div className="lg:col-span-3" />
           </div>
-          <div className="lg:col-span-3 space-y-3">
-            {(game.status === 'in_progress' || game.status === 'finished') && (
-              <>
-                <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
-                <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
-              </>
-            )}
+        )}
+
+        {(game.status === 'in_progress' || game.status === 'finished') && (
+          <div className="space-y-2">
+            <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
+            <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
+
             {game.status === 'finished' && game.winner && (
               <div className={cn(
                 "text-center py-6 rounded-lg border-2",
@@ -167,23 +172,17 @@ export default function Game() {
               </div>
             )}
 
-            {game.status === 'waiting' && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(window.location.href);
-                  setLinkCopied(true);
-                  setTimeout(() => setLinkCopied(false), 2000);
-                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
-                }}
-              >
-                {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
-                {linkCopied ? 'Link Copied!' : 'Share Room Link'}
-              </Button>
-            )}
+            <GameControls
+              gameId={gameId as string}
+              currentTeam={game.currentTeam as 'red' | 'blue' | null}
+              currentPhase={game.currentPhase}
+              players={players}
+              isHost={isHost}
+              winner={game.winner}
+              onStateChange={fetchGameData}
+            />
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

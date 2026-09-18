@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Bot, Zap, Play, Pause } from 'lucide-react';
+import { Loader2, Zap, Play, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +15,7 @@ interface GameControlsProps {
     id: string;
     team: string;
     role: string;
+    username?: string;
     agentDisplayName?: string | null;
     isAgent?: boolean;
   }>;
@@ -24,6 +24,7 @@ interface GameControlsProps {
   onStateChange: () => void;
 }
 
+/** Hypersummarized footer: team rosters, turn indicator, and agent controls. */
 export function GameControls({ gameId, currentTeam, currentPhase, players, isHost, winner, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
@@ -61,26 +62,22 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
         toast({ title: 'Agent Error', description: data.error, variant: 'destructive' });
         setAutoPlay(false);
       } else {
-        // Update last action display
         if (action === 'give_clue') {
-          setLastAction(`${currentTeam?.toUpperCase()} Spymaster gave clue: ${data.clue} (${data.number})`);
+          setLastAction(`${currentTeam?.toUpperCase()} spymaster gave clue: ${data.clue} (${data.number})`);
+        } else if (data.action === 'pass') {
+          setLastAction(`${currentTeam?.toUpperCase()} operative passed`);
+        } else if (data.action === 'assassin') {
+          setLastAction(`${currentTeam?.toUpperCase()} hit the assassin — ${data.winner?.toUpperCase()} wins!`);
+          setAutoPlay(false);
+        } else if (data.action === 'win') {
+          setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" — ${data.winner?.toUpperCase()} wins!`);
+          setAutoPlay(false);
+        } else if (data.action === 'correct') {
+          setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" ✓ (${data.guessesRemaining} left)`);
         } else {
-          if (data.action === 'pass') {
-            setLastAction(`${currentTeam?.toUpperCase()} Operative passed`);
-          } else if (data.action === 'assassin') {
-            setLastAction(`${currentTeam?.toUpperCase()} Operative hit ASSASSIN! ${data.winner?.toUpperCase()} wins!`);
-            setAutoPlay(false);
-          } else if (data.action === 'win') {
-            setLastAction(`${currentTeam?.toUpperCase()} Operative guessed "${data.guess}" - ${data.winner?.toUpperCase()} WINS!`);
-            setAutoPlay(false);
-          } else if (data.action === 'correct') {
-            setLastAction(`${currentTeam?.toUpperCase()} Operative guessed "${data.guess}" ✓ (${data.guessesRemaining} left)`);
-          } else {
-            setLastAction(`${currentTeam?.toUpperCase()} Operative guessed "${data.guess}" - Turn ends`);
-          }
+          setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" — turn ends`);
         }
 
-        toast({ title: 'Turn Complete', description: `Agent action: ${data.action || 'clue given'}` });
         onStateChange();
       }
     } catch (err) {
@@ -103,105 +100,84 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
 
   const currentPlayer = getCurrentPlayer();
 
-  if (winner) {
-    return (
-      <Card className={cn(
-        "border-2",
-        winner === 'red' ? "border-team-red card-glow-red" : "border-team-blue card-glow-blue"
-      )}>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Zap className="h-5 w-5" />
-            Game Over
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className={cn(
-            "text-2xl font-display font-bold text-center",
-            winner === 'red' ? "text-team-red" : "text-team-blue"
-          )}>
-            {winner.toUpperCase()} TEAM WINS!
-          </p>
-        </CardContent>
-      </Card>
+  const teamSummary = (team: 'red' | 'blue') => {
+    const teamPlayers = players.filter(p => p.team === team);
+    const names = teamPlayers.map(p =>
+      p.isAgent ? `${p.agentDisplayName || 'Jev'} AI` : p.username || '?'
     );
-  }
+    return (
+      <div key={team} className="flex items-center gap-1.5 min-w-0">
+        <span className={cn(
+          "font-bold uppercase shrink-0",
+          team === 'red' ? "text-team-red" : "text-team-blue"
+        )}>
+          {team}
+        </span>
+        <span className="text-muted-foreground truncate">
+          {names.join(', ') || '—'}
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <Card className="bg-card/80 backdrop-blur-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Bot className="h-5 w-5 text-primary" />
-          Agent Controls
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Current Turn</p>
-            <div className="flex items-center gap-2">
-              <Badge variant={currentTeam === 'red' ? 'destructive' : 'default'} className={cn(
-                currentTeam === 'red' ? "bg-team-red" : "bg-team-blue"
-              )}>
-                {currentTeam?.toUpperCase()}
-              </Badge>
-              <span className="text-sm font-medium">
-                {currentPhase === 'spymaster_clue' ? 'Spymaster' : 'Operative'}
-              </span>
-            </div>
-          </div>
-          {currentPlayer && (
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Agent</p>
-              <p className="text-sm font-medium truncate max-w-32">
-                {currentPlayer.agentDisplayName || 'Jev'}
-              </p>
-            </div>
-          )}
+    <div className="rounded-lg border border-border bg-card/90 backdrop-blur-sm px-3 py-2 space-y-1.5">
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        {teamSummary('red')}
+        {teamSummary('blue')}
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-xs min-w-0">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] px-1.5 py-0 shrink-0",
+              currentTeam === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
+            )}
+          >
+            {currentTeam?.toUpperCase()}
+          </Badge>
+          <span className="text-muted-foreground truncate">
+            {currentPhase === 'spymaster_clue' ? 'Spymaster' : 'Operative'}
+            {currentPlayer?.isAgent ? ` — ${currentPlayer.agentDisplayName || 'Jev'} AI` : ''}
+          </span>
         </div>
 
-        {lastAction && (
-          <div className="p-2 rounded bg-muted/50 text-sm">
-            <p className="text-muted-foreground text-xs mb-1">Last Action</p>
-            <p className="font-medium">{lastAction}</p>
-          </div>
-        )}
-
-        {isHost && (
-          <div className="flex gap-2">
+        {isHost && !winner && (
+          <div className="flex gap-1.5 shrink-0">
             <Button
               onClick={executeAgentTurn}
               disabled={isProcessing || autoPlay}
               variant="outline"
-              className="flex-1"
+              size="sm"
+              className="h-7 px-2 text-xs"
             >
               {isProcessing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <Zap className="mr-2 h-4 w-4" />
+                <Zap className="h-3 w-3" />
               )}
               Step
             </Button>
             {autoPlay ? (
-              <Button onClick={() => setAutoPlay(false)} variant="destructive" className="flex-1">
-                <Pause className="mr-2 h-4 w-4" />
+              <Button onClick={() => setAutoPlay(false)} variant="destructive" size="sm" className="h-7 px-2 text-xs">
+                <Pause className="h-3 w-3" />
                 Stop
               </Button>
             ) : (
-              <Button onClick={() => setAutoPlay(true)} disabled={isProcessing} variant="outline" className="flex-1">
-                <Play className="mr-2 h-4 w-4" />
+              <Button onClick={() => setAutoPlay(true)} disabled={isProcessing} variant="outline" size="sm" className="h-7 px-2 text-xs">
+                <Play className="h-3 w-3" />
                 Auto
               </Button>
             )}
           </div>
         )}
+      </div>
 
-        {!isHost && (
-          <p className="text-sm text-muted-foreground text-center">
-            Only the host can control the game
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {lastAction && (
+        <p className="text-[11px] text-muted-foreground truncate">{lastAction}</p>
+      )}
+    </div>
   );
 }
