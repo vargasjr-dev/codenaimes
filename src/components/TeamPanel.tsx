@@ -32,10 +32,10 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
       team === 'red' ? "border-team-red" : "border-team-blue",
       isCurrentTeam && (team === 'red' ? "card-glow-red" : "card-glow-blue")
     )}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-1 pt-3 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className={cn(
-            "font-display text-lg uppercase",
+            "font-display text-base uppercase",
             team === 'red' ? "text-team-red" : "text-team-blue"
           )}>
             {team} Team
@@ -43,7 +43,7 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           <Badge 
             variant="outline" 
             className={cn(
-              "font-bold text-lg",
+              "font-bold text-base",
               team === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
             )}
           >
@@ -51,8 +51,8 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2">
+      <CardContent className="space-y-2 px-4 pb-3">
+        <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Crown className="h-4 w-4" />
             <span>Spymaster</span>

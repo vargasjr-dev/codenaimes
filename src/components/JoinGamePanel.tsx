@@ -113,19 +113,8 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
     }
   };
 
-  if (isAlreadyJoined) {
-    return null;
-  }
-
   if (allSpotsFilled) {
-    return (
-      <Card className="card-glow">
-        <CardHeader>
-          <CardTitle className="font-display">Game Full</CardTitle>
-          <CardDescription>All spots are taken — enjoy the game!</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return null;
   }
 
   if (!user) {
@@ -177,12 +166,16 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   return (
     <Card className="card-glow">
       <CardHeader>
-        <CardTitle className="font-display">Join Game</CardTitle>
+        <CardTitle className="font-display">
+          {isAlreadyJoined ? 'Fill Empty Seats' : 'Join Game'}
+        </CardTitle>
         <CardDescription>
-          Pick a team — play yourself or add Jev as your teammate
+          {isAlreadyJoined
+            ? 'Add Jev to any open seat, or share the room link'
+            : 'Pick a team — play yourself or add Jev as your teammate'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-3">
           <Label>Team</Label>
           <RadioGroup
@@ -205,7 +198,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
           </RadioGroup>
         </div>
 
-        <div className="space-y-3">
+        {!isAlreadyJoined && (
           <Button
             className="w-full"
             disabled={isJoining || isAddingAgent || isTeamFull(team)}
@@ -220,27 +213,27 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
               'Join Game'
             )}
           </Button>
+        )}
 
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            disabled={isJoining || isAddingAgent || isTeamFull(team)}
-            onClick={() => handleJoin(true)}
-          >
-            {isAddingAgent ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Adding Jev...
-              </>
-            ) : (
-              <>
-                <Bot className="mr-2 h-4 w-4" />
-                Add Jev Agent to Team
-              </>
-            )}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={isJoining || isAddingAgent || isTeamFull(team)}
+          onClick={() => handleJoin(true)}
+        >
+          {isAddingAgent ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Adding Jev...
+            </>
+          ) : (
+            <>
+              <Bot className="mr-2 h-4 w-4" />
+              Add Jev Agent to Team
+            </>
+          )}
+        </Button>
       </CardContent>
     </Card>
   );
