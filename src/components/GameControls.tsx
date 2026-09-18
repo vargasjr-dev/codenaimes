@@ -120,12 +120,6 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
 
       if (!res.ok) {
         toast({ title: 'Agent Error', description: data.error, variant: 'destructive' });
-      } else if (action === 'give_clue') {
-      } else if (data.action === 'pass') {
-      } else if (data.action === 'assassin') {
-      } else if (data.action === 'win') {
-      } else if (data.action === 'correct') {
-      } else {
       }
 
       onStateChange();
