@@ -1,0 +1,43 @@
+name: DB Schema Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/schema.ts"
+      - "drizzle.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - "scripts/db-push.ts"
+      - "scripts/db-push-config.ts"
+      - ".github/workflows/db-migrate.yml"
+  workflow_dispatch:
+
+jobs:
+  apply:
+    name: Apply declarative schema to Neon
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check database secret
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is not configured" >&2
+            exit 1
+          fi
+          echo "DATABASE_URL is configured"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Apply schema
+        run: bun run db:push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

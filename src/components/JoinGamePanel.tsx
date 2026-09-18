@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+"use client";
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -23,14 +24,14 @@ interface JoinGamePanelProps {
   existingPlayers: Array<{
     team: string;
     role: string;
-    user_id: string;
+    userId: string;
   }>;
   onJoined: () => void;
 }
 
 const QUICK_FILL_NAMES = [
   'Alpha Agent',
-  'Beta Agent', 
+  'Beta Agent',
   'Gamma Agent',
   'Delta Agent',
 ];
@@ -47,50 +48,21 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   const [isQuickFilling, setIsQuickFilling] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
       fetchDeployments();
-      checkAdminStatus();
+      setIsAdmin(user.isAdmin ?? false);
     }
   }, [user]);
-
-  const checkAdminStatus = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('user_id', user.id)
-      .single();
-    
-    setIsAdmin(data?.is_admin ?? false);
-  };
 
   const fetchDeployments = async () => {
     setIsLoadingDeployments(true);
     setDeploymentError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setDeploymentError('Not authenticated');
-        setIsLoadingDeployments(false);
-        return;
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vellum-deployments`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
+      const response = await fetch('/api/vellum/deployments');
       const data = await response.json();
 
       if (data.error && data.deployments?.length === 0) {
@@ -113,68 +85,31 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
     return existingPlayers.filter(p => p.team === t).length >= 2;
   };
 
-  const isAlreadyJoined = existingPlayers.some(p => p.user_id === user?.id);
+  const isAlreadyJoined = existingPlayers.some(p => p.userId === user?.id);
 
   const handleQuickFillAll = async () => {
     if (!user || !selectedDeployment) return;
-    
+
     setIsQuickFilling(true);
 
     try {
-      // Define the 4 spots: red spymaster, red operative, blue spymaster, blue operative
-      const spots = [
-        { team: 'red', index: 0 },
-        { team: 'red', index: 1 },
-        { team: 'blue', index: 2 },
-        { team: 'blue', index: 3 },
-      ];
-
-      // Filter out spots that are already filled
-      const redCount = existingPlayers.filter(p => p.team === 'red').length;
-      const blueCount = existingPlayers.filter(p => p.team === 'blue').length;
-      
-      const availableSpots = spots.filter(spot => {
-        if (spot.team === 'red') {
-          return spot.index - 0 < 2 - redCount;
-        } else {
-          return spot.index - 2 < 2 - blueCount;
-        }
+      const res = await fetch(`/api/games/${gameId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quickFill: true, vellumAgentId: selectedDeployment }),
       });
+      const data = await res.json();
 
-      if (availableSpots.length === 0) {
-        toast({
-          title: 'All spots filled',
-          description: 'All team positions are already taken.',
-          variant: 'destructive',
-        });
-        setIsQuickFilling(false);
-        return;
-      }
-
-      // Insert all players at once
-      const inserts = availableSpots.map((spot, i) => ({
-        game_id: gameId,
-        user_id: user.id,
-        team: spot.team,
-        role: 'pending',
-        vellum_agent_id: selectedDeployment,
-        agent_display_name: QUICK_FILL_NAMES[spot.index],
-      }));
-
-      const { error } = await supabase
-        .from('game_players')
-        .insert(inserts);
-
-      if (error) {
+      if (!res.ok) {
         toast({
           title: 'Failed to fill spots',
-          description: error.message,
+          description: data.error,
           variant: 'destructive',
         });
       } else {
         toast({
           title: 'All spots filled!',
-          description: `Added ${inserts.length} agents to the game.`,
+          description: `Added ${data.added} agents to the game.`,
         });
         onJoined();
       }
@@ -223,23 +158,17 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
 
     setIsJoining(true);
 
-    // Role will be assigned when game starts, just store 'pending' for now
-    const { error } = await supabase
-      .from('game_players')
-      .insert({
-        game_id: gameId,
-        user_id: user.id,
-        team,
-        role: 'pending', // Will be assigned at game start
-        vellum_agent_id: selectedDeployment,
-        agent_display_name: agentDisplayName.trim(),
-        // API key comes from profile, no need to store per-game
-      });
+    const res = await fetch(`/api/games/${gameId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team, vellumAgentId: selectedDeployment, agentDisplayName: agentDisplayName.trim() }),
+    });
+    const data = await res.json();
 
-    if (error) {
+    if (!res.ok) {
       toast({
         title: 'Failed to join',
-        description: error.message,
+        description: data.error,
         variant: 'destructive',
       });
       setIsJoining(false);
@@ -279,9 +208,9 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem 
-                  value="red" 
-                  id="team-red" 
+                <RadioGroupItem
+                  value="red"
+                  id="team-red"
                   disabled={isTeamFull('red')}
                 />
                 <Label htmlFor="team-red" className="text-team-red font-semibold">
@@ -289,8 +218,8 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem 
-                  value="blue" 
+                <RadioGroupItem
+                  value="blue"
                   id="team-blue"
                   disabled={isTeamFull('blue')}
                 />
@@ -318,7 +247,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => router.push('/profile')}
                   className="w-full"
                 >
                   <Settings className="mr-2 h-4 w-4" />
@@ -367,9 +296,9 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
           </div>
 
           {!allSpotsFilled && (
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isJoining || isLoadingDeployments || !selectedDeployment || !agentDisplayName.trim() || !!deploymentError}
             >
               {isJoining ? (
