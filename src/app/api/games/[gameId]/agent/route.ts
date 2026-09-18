@@ -121,7 +121,7 @@ export async function POST(
     await db.insert(gameEvents).values({
       gameId,
       team: player.team,
-      description: `${player.team} spymaster (${player.agentDisplayName ?? 'Jev'} AI) gave clue "${clue}" (${number})`,
+      description: `${player.agentDisplayName ?? "Jev"} AI gave clue "${clue}" (${number})`,
     });
 
     return NextResponse.json({ success: true, clue, number, confidence: clueAnswer.confidence });
@@ -183,7 +183,7 @@ export async function POST(
       })
       .where(eq(games.id, gameId));
 
-    await logGuess(`${player.team} operative passed`);
+    await logGuess(`${player.agentDisplayName ?? "Jev"} AI passed`);
 
     return NextResponse.json({ success: true, action: "pass", nextTeam });
   }
@@ -209,7 +209,7 @@ export async function POST(
       winner,
       currentPhase: "game_over",
     });
-    await logGuess(`${player.team} operative guessed "${matchedWord}" — ASSASSIN! ${winner} wins`);
+    await logGuess(`${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — ASSASSIN! ${winner} wins`);
     return NextResponse.json({ success: true, action: "assassin", winner, guess: matchedWord });
   }
 
@@ -223,7 +223,7 @@ export async function POST(
       winner: player.team,
       currentPhase: "game_over",
     });
-    await logGuess(`${player.team} operative guessed "${matchedWord}" — ${player.team} wins!`);
+    await logGuess(`${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — ${player.team} wins!`);
     return NextResponse.json({ success: true, action: "win", winner: player.team, guess: matchedWord });
   }
 
@@ -238,7 +238,7 @@ export async function POST(
       winner: opposingTeam,
       currentPhase: "game_over",
     });
-    await logGuess(`${player.team} operative guessed "${matchedWord}" — revealed the last ${opposingTeam} word, ${opposingTeam} wins`);
+    await logGuess(`${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — revealed the last ${opposingTeam} word, ${opposingTeam} wins`);
     return NextResponse.json({ success: true, action: "opponent_win", winner: opposingTeam, guess: matchedWord });
   }
 
@@ -246,7 +246,7 @@ export async function POST(
     const newGuessesRemaining = (game.guessesRemaining ?? 1) - 1;
     if (newGuessesRemaining > 0) {
       await endTurn({ revealedWords: newRevealedWords, guessesRemaining: newGuessesRemaining });
-      await logGuess(`${player.team} operative guessed "${matchedWord}" — correct! (${newGuessesRemaining} left)`);
+      await logGuess(`${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — correct! (${newGuessesRemaining} left)`);
       return NextResponse.json({
         success: true,
         action: "correct",
@@ -268,8 +268,8 @@ export async function POST(
 
   await logGuess(
     wordType === player.team
-      ? `${player.team} operative guessed "${matchedWord}" — correct, but out of guesses`
-      : `${player.team} operative guessed "${matchedWord}" — wrong (${wordType})`,
+      ? `${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — correct, but out of guesses`
+      : `${player.agentDisplayName ?? "Jev"} AI guessed "${matchedWord}" — wrong (${wordType})`,
   );
 
   return NextResponse.json({

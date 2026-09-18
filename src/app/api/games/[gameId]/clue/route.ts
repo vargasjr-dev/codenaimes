@@ -69,7 +69,7 @@ export async function POST(
   await db.insert(gameEvents).values({
     gameId,
     team: game.currentTeam,
-    description: `${game.currentTeam} spymaster gave clue "${word}" (${number})`,
+    description: `${user.username} gave clue "${word}" (${number})`,
   });
 
   return NextResponse.json({ success: true, clue: word, number });

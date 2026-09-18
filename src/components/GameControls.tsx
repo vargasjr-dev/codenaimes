@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Zap, History } from 'lucide-react';
+import { Loader2, Zap, History, Crown, Bot, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -199,18 +199,20 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
                 {events.length === 0 && (
                   <p className="text-sm text-muted-foreground">No moves yet.</p>
                 )}
-                {events.map((ev) => (
-                  <div key={ev.id} className="flex items-start gap-2 text-sm">
-                    <span
-                      className={cn(
-                        "mt-1 h-2 w-2 rounded-full shrink-0",
-                        ev.team === 'red' ? "bg-team-red" : ev.team === 'blue' ? "bg-team-blue" : "bg-muted-foreground"
-                      )}
-                    />
-                    <span className="font-medium shrink-0">R{ev.round}</span>
-                    <span className="text-muted-foreground">{ev.description}</span>
-                  </div>
-                ))}
+                {events.map((ev) => {
+                  const isSpymaster = /gave clue/.test(ev.description);
+                  const Icon = isSpymaster ? Crown : /AI/.test(ev.description) ? Bot : User;
+                  return (
+                    <div key={ev.id} className="flex items-start gap-2 text-sm">
+                      <Icon className={cn(
+                        "h-3.5 w-3.5 mt-0.5 shrink-0",
+                        ev.team === 'red' ? "text-team-red" : ev.team === 'blue' ? "text-team-blue" : "text-muted-foreground"
+                      )} />
+                      <span className="font-medium shrink-0">R{ev.round}</span>
+                      <span className="text-muted-foreground">{ev.description}</span>
+                    </div>
+                  );
+                })}
               </div>
             </DialogContent>
           </Dialog>
