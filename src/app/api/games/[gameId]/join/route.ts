@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@data/db";
-import { gamePlayers, games } from "@data/schema";
+import { gameEvents, gamePlayers, games } from "@data/schema";
 import { getCurrentUser } from "@/server/auth";
+import { AGENT_NAMES } from "@/lib/agent-names";
 
 export async function POST(
   request: Request,
@@ -38,16 +39,25 @@ export async function POST(
   }
 
   if (body.addAgent) {
-    // Fill the seat with a Jev agent instead of a human
+    // Fill the seat with a Jev-driven agent; pick a table name that isn't taken
+    const takenNames = new Set(
+      existingPlayers
+        .filter((p) => p.isAgent)
+        .map((p) => p.agentDisplayName?.toLowerCase()),
+    );
+    const agentName =
+      AGENT_NAMES.find((n) => !takenNames.has(n.toLowerCase())) ??
+      `Jev ${existingPlayers.filter((p) => p.isAgent).length + 1}`;
+
     await db.insert(gamePlayers).values({
       gameId,
       userId: user.id,
       team,
       role: "pending",
       isAgent: true,
-      agentDisplayName: "Jev",
+      agentDisplayName: agentName,
     });
-    return NextResponse.json({ success: true, agent: true });
+    return NextResponse.json({ success: true, agent: true, name: agentName });
   }
 
   await db.insert(gamePlayers).values({

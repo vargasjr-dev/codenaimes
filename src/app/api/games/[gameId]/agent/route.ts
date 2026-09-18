@@ -121,7 +121,7 @@ export async function POST(
     await db.insert(gameEvents).values({
       gameId,
       team: player.team,
-      description: `${player.team} spymaster (Jev) gave clue "${clue}" (${number})`,
+      description: `${player.team} spymaster (${player.agentDisplayName ?? 'Jev'} AI) gave clue "${clue}" (${number})`,
     });
 
     return NextResponse.json({ success: true, clue, number, confidence: clueAnswer.confidence });
