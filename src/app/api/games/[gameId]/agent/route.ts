@@ -209,8 +209,32 @@ export async function POST(
   };
 
   const matchedWord = unrevealedWords.find((w) => w.toUpperCase() === guess);
-  if (!matchedWord) {
-    return NextResponse.json({ error: "Invalid guess - word not on board", guess }, { status: 400 });
+
+  // Defensive pass handling. Jev reads the move history literally and
+  // sometimes answers "PASS" (or an off-board word) even when it isn't a
+  // criteria option — documented "literal reading" failure mode. Rather than
+  // erroring out mid-turn, treat it as a pass.
+  if (guess === "PASS" || !matchedWord) {
+    const nextTeam = player.team === "red" ? "blue" : "red";
+    await db
+      .update(games)
+      .set({
+        currentTeam: nextTeam,
+        currentPhase: "spymaster_clue",
+        currentClue: null,
+        currentClueNumber: null,
+        guessesRemaining: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(games.id, gameId));
+
+    await logGuess(
+      guess === "PASS"
+        ? `${player.agentDisplayName ?? "Jev"} AI passed`
+        : `${player.agentDisplayName ?? "Jev"} AI answered "${guess}", which is not on the board — treated as a pass`,
+    );
+
+    return NextResponse.json({ success: true, action: "pass", nextTeam });
   }
 
   const wordType = wordAssignments[matchedWord];
