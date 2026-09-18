@@ -77,36 +77,66 @@ export async function POST(
       moveHistory: historyLines,
     };
 
-    // Jev cannot generate text, so it picks the best clue from a legal
-    // candidate vocabulary, then rates how many words the clue should link.
+    // One Choice question per candidate clue; the options are the board
+    // words. Each answer's probability distribution over the board is scored
+    // deterministically against the spymaster's allegiances, and the best
+    // candidate wins. Jev never sees which word belongs to which team — the
+    // scoring happens in code.
     const candidates = candidateClues(unrevealedWords);
-    const answers = await askJev(state, {
-      clue: {
+    const questions: Record<string, {
+      type: "choice";
+      instructions: string;
+      criteria: Record<string, string | null>;
+    }> = {};
+    for (const candidate of candidates) {
+      questions[`cand_${candidate}`] = {
         type: "choice",
-        instructions:
-          "Pick the one word that would make the best clue for your operatives — " +
-          "strongly associated with your team's words, and NOT associated with the " +
-          "opposing, neutral, or assassin words.",
-        criteria: Object.fromEntries(candidates.map((c) => [c, `Candidate clue word "${c}"`])),
-      },
-      clue_number: {
-        type: "score",
-        instructions:
-          "How many of your team's words does the chosen clue relate to? " +
-          "Be conservative — a wrong guess ends your team's turn.",
-        criteria: ["one word", "two words", "three or more words"],
-      },
-    });
+        instructions: `Which board word is most strongly associated with the word "${candidate}"?`,
+        criteria: Object.fromEntries(unrevealedWords.map((w) => [w, null])),
+      };
+    }
 
-    const clueAnswer = answers.clue;
-    const numberAnswer = answers.clue_number;
+    const answers = await askJev(state, questions);
 
-    if (!clueAnswer || clueAnswer.type !== "choice") {
+    const OPPOSING_PENALTY = 1;
+    const NEUTRAL_PENALTY = 0.5;
+    const ASSASSIN_PENALTY = 3;
+
+    let bestCandidate: string | null = null;
+    let bestScore = -Infinity;
+    let bestDistribution: Record<string, number> = {};
+
+    for (const candidate of candidates) {
+      const answer = answers[`cand_${candidate}`];
+      if (!answer || answer.type !== "choice") continue;
+
+      const dist = answer.probabilities;
+      let score = 0;
+      for (const word of unrevealedWords) {
+        const p = dist[word] ?? 0;
+        if (teamWords.includes(word)) score += p;
+        else if (word === assassinWord) score -= ASSASSIN_PENALTY * p;
+        else if (opposingWords.includes(word)) score -= OPPOSING_PENALTY * p;
+        else if (neutralWords.includes(word)) score -= NEUTRAL_PENALTY * p;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestCandidate = candidate;
+        bestDistribution = dist;
+      }
+    }
+
+    if (!bestCandidate) {
       return NextResponse.json({ error: "Failed to get a clue from Jev" }, { status: 500 });
     }
 
-    const clue = clueAnswer.choice.toUpperCase();
-    const number = numberAnswer?.type === "score" ? Math.max(1, Math.min(3, Math.round(numberAnswer.score))) : 1;
+    // Deterministic count: how many team words land in the distribution's top 3
+    const topWords = [...unrevealedWords]
+      .sort((a, b) => (bestDistribution[b] ?? 0) - (bestDistribution[a] ?? 0))
+      .slice(0, 3);
+    const number = Math.max(1, topWords.filter((w) => teamWords.includes(w)).length);
+    const clue = bestCandidate.toUpperCase();
 
     await db
       .update(games)
@@ -125,7 +155,13 @@ export async function POST(
       description: `${player.agentDisplayName ?? "Jev"} AI gave clue "${clue}" (${number})`,
     });
 
-    return NextResponse.json({ success: true, clue, number, confidence: clueAnswer.confidence });
+    return NextResponse.json({
+      success: true,
+      clue,
+      number,
+      score: bestScore,
+      topWords,
+    });
   }
 
   // make_guess
