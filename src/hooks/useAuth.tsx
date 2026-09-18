@@ -4,9 +4,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 
 export type AuthUser = {
   id: string;
-  email: string;
+  email: string | null;
   username: string;
-  isAdmin?: boolean;
+  isGuest?: boolean;
 };
 
 interface AuthContextType {
@@ -14,6 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  playAsGuest: (name: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -59,13 +60,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const playAsGuest = async (name: string) => {
+    const res = await fetch("/api/auth/guest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { error: new Error(data.error ?? "Could not start guest session") };
+    }
+    setUser(data.user);
+    return { error: null };
+  };
+
   const signOut = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, playAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -17,7 +17,7 @@ interface GameControlsProps {
     team: string;
     role: string;
     agentDisplayName?: string | null;
-    vellumAgentId?: string | null;
+    isAgent?: boolean;
   }>;
   isHost: boolean;
   winner: string | null;
@@ -154,7 +154,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Agent</p>
               <p className="text-sm font-medium truncate max-w-32">
-                {currentPlayer.agentDisplayName || currentPlayer.vellumAgentId?.slice(0, 12) + '...'}
+                {currentPlayer.agentDisplayName || 'Jev'}
               </p>
             </div>
           )}

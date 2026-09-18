@@ -46,7 +46,7 @@ export function CreateGameDialog() {
     }
 
     toast({
-      title: 'Game created!',
+      title: 'Room created!',
       description: 'Redirecting to game lobby...',
     });
 

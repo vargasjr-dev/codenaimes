@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@data/db";
-import { gamePlayers, games, users } from "@data/schema";
-import { callVellumAgent } from "@/server/vellum";
+import { gamePlayers, games } from "@data/schema";
+import { askJev, candidateClues } from "@/server/jev";
 
 type Body = {
   action?: "give_clue" | "make_guess";
   playerId?: string;
 };
+
+type WordAssignments = Record<string, string>;
 
 export async function POST(
   request: Request,
@@ -32,24 +34,12 @@ export async function POST(
   if (!player) {
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
-
-  const [profile] = await db
-    .select({ vellumApiKey: users.vellumApiKey })
-    .from(users)
-    .where(eq(users.id, player.userId))
-    .limit(1);
-
-  if (!profile?.vellumApiKey) {
-    return NextResponse.json({ error: "Player missing Vellum API key in profile" }, { status: 400 });
+  if (!player.isAgent) {
+    return NextResponse.json({ error: "Player is not an agent" }, { status: 400 });
   }
-  if (!player.vellumAgentId) {
-    return NextResponse.json({ error: "Player missing Vellum agent selection" }, { status: 400 });
-  }
-
-  const vellumApiKey = profile.vellumApiKey;
 
   const words = (game.words as string[]) ?? [];
-  const wordAssignments = (game.wordAssignments as Record<string, string>) ?? {};
+  const wordAssignments = (game.wordAssignments as WordAssignments) ?? {};
   const revealedWords = (game.revealedWords as string[]) ?? [];
   const unrevealedWords = words.filter((w) => !revealedWords.includes(w));
 
@@ -61,31 +51,48 @@ export async function POST(
     const neutralWords = unrevealedWords.filter((w) => wordAssignments[w] === "neutral");
     const assassinWord = unrevealedWords.find((w) => wordAssignments[w] === "assassin");
 
-    const prompt = `You are the spymaster in a game of Codenames. Your team is ${player.team}.
-
-Your team's words (you want your operatives to guess these): ${teamWords.join(", ")}
-Opposing team's words (avoid making operatives guess these): ${opposingWords.join(", ")}
-Neutral words (avoid these, but they only end the turn): ${neutralWords.join(", ")}
-Assassin word (NEVER give a clue that could lead to this): ${assassinWord}
-
-Give a one-word clue and a number indicating how many words it relates to.
-The clue MUST NOT be any word on the board or a derivative of any word on the board.
-The clue must be a single word with no spaces, hyphens, or special characters.
-
-Respond in this exact JSON format:
-{"clue": "YOUR_CLUE", "number": N}
-
-Think strategically - try to link multiple of your team's words while avoiding words that could lead to opposing team, neutral, or assassin words.`;
-
-    const vellumResponse = await callVellumAgent(vellumApiKey, player.vellumAgentId, prompt);
-
-    const clueMatch = vellumResponse.match(/\{[\s\S]*?"clue"[\s\S]*?:[\s\S]*?"([^"]+)"[\s\S]*?,[\s\S]*?"number"[\s\S]*?:[\s\S]*?(\d+)[\s\S]*?\}/);
-    if (!clueMatch) {
-      return NextResponse.json({ error: "Failed to parse clue from agent", raw: vellumResponse }, { status: 500 });
+    if (teamWords.length === 0) {
+      return NextResponse.json({ error: "No team words left to clue" }, { status: 400 });
     }
 
-    const clue = clueMatch[1].toUpperCase();
-    const number = parseInt(clueMatch[2], 10);
+    const state = [
+      `You are the spymaster in a game of Codenames for the ${player.team} team.`,
+      `Your team's unrevealed words: ${teamWords.join(", ")}`,
+      `Opposing team's words (avoid): ${opposingWords.join(", ")}`,
+      `Neutral words (avoid): ${neutralWords.join(", ")}`,
+      `Assassin word (never lead operatives to): ${assassinWord ?? "none"}`,
+    ].join("\n");
+
+    // Jev cannot generate text, so it picks the best clue from a legal
+    // candidate vocabulary, then rates how many words the clue should link.
+    const candidates = candidateClues(unrevealedWords);
+    const answers = await askJev(state, {
+      clue: {
+        type: "choice",
+        instructions:
+          "Pick the one word that would make the best clue for your operatives — " +
+          "strongly associated with your team's words, and NOT associated with the " +
+          "opposing, neutral, or assassin words.",
+        criteria: Object.fromEntries(candidates.map((c) => [c, `Candidate clue word "${c}"`])),
+      },
+      clue_number: {
+        type: "score",
+        instructions:
+          "How many of your team's words does the chosen clue relate to? " +
+          "Be conservative — a wrong guess ends your team's turn.",
+        criteria: ["one word", "two words", "three or more words"],
+      },
+    });
+
+    const clueAnswer = answers.clue;
+    const numberAnswer = answers.clue_number;
+
+    if (!clueAnswer || clueAnswer.type !== "choice") {
+      return NextResponse.json({ error: "Failed to get a clue from Jev" }, { status: 500 });
+    }
+
+    const clue = clueAnswer.choice.toUpperCase();
+    const number = numberAnswer?.type === "score" ? Math.max(1, Math.min(3, Math.round(numberAnswer.score))) : 1;
 
     await db
       .update(games)
@@ -98,32 +105,38 @@ Think strategically - try to link multiple of your team's words while avoiding w
       })
       .where(eq(games.id, gameId));
 
-    return NextResponse.json({ success: true, clue, number });
+    return NextResponse.json({ success: true, clue, number, confidence: clueAnswer.confidence });
   }
 
   // make_guess
-  const prompt = `You are an operative in a game of Codenames. Your team is ${player.team}.
+  const state = [
+    `You are an operative in a game of Codenames for the ${player.team} team.`,
+    `Current clue: "${game.currentClue}" (${game.currentClueNumber} words)`,
+    `Guesses remaining this turn: ${game.guessesRemaining ?? 0}`,
+    `Unrevealed words on the board: ${unrevealedWords.join(", ")}`,
+  ].join("\n");
 
-Current clue: "${game.currentClue}" (${game.currentClueNumber} words)
-Unrevealed words on the board: ${unrevealedWords.join(", ")}
-Guesses remaining: ${game.guessesRemaining}
+  const options: Record<string, string | null> = Object.fromEntries(
+    unrevealedWords.map((w) => [w, null]),
+  );
+  options["PASS"] = "End the turn safely without guessing";
 
-Based on the clue, guess ONE word from the unrevealed words that you think belongs to your team.
-You can also choose to "PASS" if you're unsure and want to end your turn safely.
+  const answers = await askJev(state, {
+    guess: {
+      type: "choice",
+      instructions:
+        `Which unrevealed word is most likely to belong to your team based on the clue ` +
+        `"${game.currentClue}"? Choose PASS if no word fits well.`,
+      criteria: options,
+    },
+  });
 
-Respond in this exact JSON format:
-{"guess": "YOUR_GUESS"} or {"guess": "PASS"}
-
-The guess MUST be exactly one of the unrevealed words listed above, or "PASS".`;
-
-  const vellumResponse = await callVellumAgent(vellumApiKey, player.vellumAgentId, prompt);
-
-  const guessMatch = vellumResponse.match(/\{[\s\S]*?"guess"[\s\S]*?:[\s\S]*?"([^"]+)"[\s\S]*?\}/);
-  if (!guessMatch) {
-    return NextResponse.json({ error: "Failed to parse guess from agent", raw: vellumResponse }, { status: 500 });
+  const guessAnswer = answers.guess;
+  if (!guessAnswer || guessAnswer.type !== "choice") {
+    return NextResponse.json({ error: "Failed to get a guess from Jev" }, { status: 500 });
   }
 
-  const guess = guessMatch[1].toUpperCase();
+  const guess = guessAnswer.choice.toUpperCase();
 
   if (guess === "PASS") {
     const nextTeam = player.team === "red" ? "blue" : "red";

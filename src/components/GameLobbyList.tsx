@@ -68,7 +68,7 @@ export function GameLobbyList() {
       <Card>
         <CardContent className="py-12 text-center">
           <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">No games yet. Create one to get started!</p>
+          <p className="text-muted-foreground">No rooms yet. Create one and share the link!</p>
         </CardContent>
       </Card>
     );
@@ -82,7 +82,7 @@ export function GameLobbyList() {
             <div className="flex items-center justify-between">
               <CardTitle className="font-display text-lg">{game.name}</CardTitle>
               <Badge variant={game.status === 'waiting' ? 'secondary' : 'default'}>
-                {game.status === 'waiting' ? 'Lobby' : 'In Progress'}
+                {game.status === 'waiting' ? 'Waiting for players' : 'In Progress'}
               </Badge>
             </div>
           </CardHeader>
