@@ -9,7 +9,6 @@ import { JoinGamePanel } from "@/components/JoinGamePanel";
 import { ClueDisplay } from "@/components/ClueDisplay";
 import { GameControls } from "@/components/GameControls";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Loader2, Trophy, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WordAssignment } from "@/lib/codenames-words";
@@ -111,47 +110,26 @@ export default function Game() {
   return (
     <div className="min-h-screen bg-background grid-pattern">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => router.push('/')}><ArrowLeft className="h-5 w-5" /></Button>
-            <h1 className="font-display text-xl font-bold">{game.name}</h1>
-            <Badge variant={game.status === 'waiting' ? 'secondary' : game.status === 'finished' ? 'outline' : 'default'}>
-              {game.status === 'finished' && <Trophy className="h-3 w-3 mr-1" />}
-              {game.status}
-            </Badge>
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => router.push('/')}><ArrowLeft className="h-4 w-4" /></Button>
+            <h1 className="font-display text-lg font-bold truncate">{game.name}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            {game.status === 'waiting' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(window.location.href);
-                  setLinkCopied(true);
-                  setTimeout(() => setLinkCopied(false), 2000);
-                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
-                }}
-              >
-                {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
-                {linkCopied ? 'Copied!' : 'Share'}
-              </Button>
-            )}
           {isHost && game.status === 'waiting' && (
-            <Button onClick={startGame} disabled={isStarting || players.length < 4}>
+            <Button size="sm" onClick={startGame} disabled={isStarting || players.length < 4}>
               {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
               Start Game
             </Button>
           )}
-          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1 space-y-4">
+      <main className="container mx-auto px-3 py-3">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          <div className="lg:col-span-1 space-y-2">
             <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={game.currentTeam === 'red'} />
             <TeamPanel team="blue" players={bluePlayers} remainingWords={blueRemaining} isCurrentTeam={game.currentTeam === 'blue'} />
-            {!myPlayer && game.status === 'waiting' && <JoinGamePanel gameId={gameId as string} existingPlayers={players} onJoined={fetchGameData} />}
+            {game.status === 'waiting' && <JoinGamePanel gameId={gameId as string} existingPlayers={players} onJoined={fetchGameData} />}
             {game.status === 'in_progress' && (
               <GameControls
                 gameId={gameId as string}
@@ -164,49 +142,45 @@ export default function Game() {
               />
             )}
           </div>
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-3">
             {(game.status === 'in_progress' || game.status === 'finished') && (
               <>
                 <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
                 <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
               </>
             )}
-            {game.status === 'waiting' && (
-              <div className="flex items-center justify-center h-96 border-2 border-dashed border-border rounded-lg">
-                <div className="text-center space-y-4">
-                  <p className="text-muted-foreground mb-2">Waiting for players to join...</p>
-                  <p className="text-sm text-muted-foreground">
-                    {players.length}/4 players
-                    {players.length >= 4 && ' - Ready to start!'}
-                  </p>
-                  {players.length >= 4 && isHost && (
-                    <Button onClick={startGame} disabled={isStarting} size="lg" className="mt-4">
-                      {isStarting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Play className="mr-2 h-5 w-5" />}
-                      Start Game
-                    </Button>
-                  )}
-                  {players.length >= 4 && !isHost && (
-                    <p className="text-sm text-muted-foreground italic">Waiting for host to start...</p>
-                  )}
-                </div>
-              </div>
-            )}
             {game.status === 'finished' && game.winner && (
               <div className={cn(
-                "text-center py-8 rounded-lg border-2",
+                "text-center py-6 rounded-lg border-2",
                 game.winner === 'red' ? "border-team-red bg-team-red/10" : "border-team-blue bg-team-blue/10"
               )}>
                 <Trophy className={cn(
-                  "h-12 w-12 mx-auto mb-4",
+                  "h-10 w-10 mx-auto mb-3",
                   game.winner === 'red' ? "text-team-red" : "text-team-blue"
                 )} />
                 <h2 className={cn(
-                  "text-3xl font-display font-bold",
+                  "text-2xl font-display font-bold",
                   game.winner === 'red' ? "text-team-red" : "text-team-blue"
                 )}>
                   {game.winner.toUpperCase()} TEAM WINS!
                 </h2>
               </div>
+            )}
+
+            {game.status === 'waiting' && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
+                }}
+              >
+                {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
+                {linkCopied ? 'Link Copied!' : 'Share Room Link'}
+              </Button>
             )}
           </div>
         </div>
