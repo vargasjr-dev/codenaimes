@@ -28,6 +28,7 @@ type GameRecord = {
   currentClue: string | null;
   currentClueNumber: number | null;
   guessesRemaining: number | null;
+  updatedAt: string | null;
 };
 
 type PlayerRecord = {
@@ -50,7 +51,6 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-
   const fetchGameData = useCallback(async () => {
     if (!gameId) return;
     const res = await fetch(`/api/games/${gameId}`);
@@ -179,6 +179,7 @@ export default function Game() {
               players={players}
               isHost={isHost}
               winner={game.winner}
+              updatedAt={game.updatedAt}
               myPlayer={myPlayer ? { team: myPlayer.team, role: myPlayer.role, isAgent: myPlayer.isAgent } : null}
               onStateChange={fetchGameData}
             />

@@ -25,6 +25,8 @@ interface GameControlsProps {
   players: FooterPlayer[];
   isHost: boolean;
   winner: string | null;
+  /** Game row's updatedAt — changes on every mutation, drives the events refetch */
+  updatedAt?: string | null;
   /** The signed-in player's own seat (non-agent) */
   myPlayer?: { team: string; role: string; isAgent?: boolean } | null;
   onStateChange: () => void;
@@ -39,9 +41,9 @@ type GameEvent = {
 };
 
 /** Hypersummarized footer: clue entry (human spymaster), Step (agent), history. */
-export function GameControls({ gameId, currentTeam, currentPhase, players, winner, myPlayer, onStateChange }: GameControlsProps) {
+export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastAction, setLastAction] = useState<string | null>(null);
+  const [latestEvent, setLatestEvent] = useState<string | null>(null);
   const [clueWord, setClueWord] = useState('');
   const [clueNumber, setClueNumber] = useState('2');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -69,11 +71,13 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
     fetch(`/api/games/${gameId}/events`)
       .then((res) => res.json())
       .then((data) => {
-        setEvents(data.events ?? []);
+        const evs: GameEvent[] = data.events ?? [];
+        setEvents(evs);
         setRound(data.round ?? 0);
+        setLatestEvent(evs.length ? evs[evs.length - 1].description : null);
       })
       .catch(() => setEvents([]));
-  }, [isHistoryOpen, lastAction, gameId]);
+  }, [gameId, updatedAt]);
 
   const submitClue = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,17 +121,11 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
       if (!res.ok) {
         toast({ title: 'Agent Error', description: data.error, variant: 'destructive' });
       } else if (action === 'give_clue') {
-        setLastAction(`${currentTeam?.toUpperCase()} spymaster gave clue: ${data.clue} (${data.number})`);
       } else if (data.action === 'pass') {
-        setLastAction(`${currentTeam?.toUpperCase()} operative passed`);
       } else if (data.action === 'assassin') {
-        setLastAction(`${currentTeam?.toUpperCase()} hit the assassin — ${data.winner?.toUpperCase()} wins!`);
       } else if (data.action === 'win') {
-        setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" — ${data.winner?.toUpperCase()} wins!`);
       } else if (data.action === 'correct') {
-        setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" ✓ (${data.guessesRemaining} left)`);
       } else {
-        setLastAction(`${currentTeam?.toUpperCase()} guessed "${data.guess}" — turn ends`);
       }
 
       onStateChange();
@@ -258,8 +256,8 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
         </form>
       )}
 
-      {lastAction && (
-        <p className="text-[11px] text-muted-foreground truncate">{lastAction}</p>
+      {latestEvent && (
+        <p className="text-[11px] text-muted-foreground truncate">{latestEvent}</p>
       )}
     </div>
   );
