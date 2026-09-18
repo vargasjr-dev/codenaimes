@@ -22,7 +22,7 @@ export function GameBoard({
     const isRevealed = revealedWords.includes(word);
     const assignment = wordAssignments[word];
 
-    let baseClasses = "game-word-card";
+    const baseClasses = "game-word-card";
 
     if (isRevealed) {
       switch (assignment) {

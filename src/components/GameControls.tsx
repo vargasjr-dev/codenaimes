@@ -1,9 +1,10 @@
+"use client";
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Bot, Zap, Play, Pause } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -11,13 +12,19 @@ interface GameControlsProps {
   gameId: string;
   currentTeam: 'red' | 'blue' | null;
   currentPhase: string | null;
-  players: any[];
+  players: Array<{
+    id: string;
+    team: string;
+    role: string;
+    agentDisplayName?: string | null;
+    vellumAgentId?: string | null;
+  }>;
   isHost: boolean;
   winner: string | null;
+  onStateChange: () => void;
 }
 
-export function GameControls({ gameId, currentTeam, currentPhase, players, isHost, winner }: GameControlsProps) {
-  const [isRunning, setIsRunning] = useState(false);
+export function GameControls({ gameId, currentTeam, currentPhase, players, isHost, winner, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
@@ -37,25 +44,20 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
     }
 
     setIsProcessing(true);
-    setIsRunning(true);
+    setAutoPlay(true);
 
     try {
       const action = currentPhase === 'spymaster_clue' ? 'give_clue' : 'make_guess';
-      
-      const { data, error } = await supabase.functions.invoke('vellum-agent', {
-        body: {
-          gameId,
-          action,
-          playerId: currentPlayer.id,
-        },
-      });
 
-      if (error) {
-        console.error('Agent error:', error);
-        toast({ title: 'Agent Error', description: error.message, variant: 'destructive' });
-        setAutoPlay(false);
-      } else if (data.error) {
-        console.error('Agent response error:', data.error);
+      const res = await fetch(`/api/games/${gameId}/agent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, playerId: currentPlayer.id }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error('Agent error:', data.error);
         toast({ title: 'Agent Error', description: data.error, variant: 'destructive' });
         setAutoPlay(false);
       } else {
@@ -79,6 +81,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
         }
 
         toast({ title: 'Turn Complete', description: `Agent action: ${data.action || 'clue given'}` });
+        onStateChange();
       }
     } catch (err) {
       console.error('Agent call failed:', err);
@@ -87,19 +90,9 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
     }
 
     setIsProcessing(false);
-    setIsRunning(false);
   };
 
-  // Auto-play loop
-  const startAutoPlay = async () => {
-    setAutoPlay(true);
-  };
-
-  const stopAutoPlay = () => {
-    setAutoPlay(false);
-  };
-
-  // Effect for auto-play
+  // Auto-play loop: re-render driven, waits for the previous turn to settle
   if (autoPlay && !isProcessing && !winner) {
     setTimeout(() => {
       if (autoPlay && !isProcessing && !winner) {
@@ -161,7 +154,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Agent</p>
               <p className="text-sm font-medium truncate max-w-32">
-                {currentPlayer.agent_display_name || currentPlayer.vellum_agent_id?.slice(0, 12) + '...'}
+                {currentPlayer.agentDisplayName || currentPlayer.vellumAgentId?.slice(0, 12) + '...'}
               </p>
             </div>
           )}
@@ -176,8 +169,8 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
 
         {isHost && (
           <div className="flex gap-2">
-            <Button 
-              onClick={executeAgentTurn} 
+            <Button
+              onClick={executeAgentTurn}
               disabled={isProcessing || autoPlay}
               variant="outline"
               className="flex-1"
@@ -190,12 +183,12 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, isHos
               Step
             </Button>
             {autoPlay ? (
-              <Button onClick={stopAutoPlay} variant="destructive" className="flex-1">
+              <Button onClick={() => setAutoPlay(false)} variant="destructive" className="flex-1">
                 <Pause className="mr-2 h-4 w-4" />
                 Stop
               </Button>
             ) : (
-              <Button onClick={startAutoPlay} disabled={isProcessing} className="flex-1">
+              <Button onClick={() => setAutoPlay(true)} disabled={isProcessing} variant="outline" className="flex-1">
                 <Play className="mr-2 h-4 w-4" />
                 Auto
               </Button>

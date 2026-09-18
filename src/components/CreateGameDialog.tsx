@@ -1,6 +1,7 @@
+"use client";
+
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -20,27 +21,24 @@ export function CreateGameDialog() {
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleCreate = async () => {
     if (!user) return;
 
     setIsCreating(true);
 
-    const { data, error } = await supabase
-      .from('games')
-      .insert({
-        name: generateGameName(),
-        host_user_id: user.id,
-        status: 'waiting',
-      })
-      .select()
-      .single();
+    const res = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: generateGameName() }),
+    });
+    const data = await res.json();
 
-    if (error) {
+    if (!res.ok) {
       toast({
         title: 'Failed to create game',
-        description: error.message,
+        description: data.error,
         variant: 'destructive',
       });
       setIsCreating(false);
@@ -53,7 +51,7 @@ export function CreateGameDialog() {
     });
 
     setIsCreating(false);
-    navigate(`/game/${data.id}`);
+    router.push(`/game/${data.game.id}`);
   };
 
   return (

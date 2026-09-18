@@ -5,14 +5,12 @@ import { Crown, Bot } from 'lucide-react';
 
 interface Player {
   id: string;
-  user_id: string;
+  userId: string;
   team: 'red' | 'blue';
   role: 'spymaster' | 'operative' | 'pending';
-  vellum_agent_id?: string;
-  agent_display_name?: string;
-  profiles?: {
-    username: string;
-  };
+  vellumAgentId?: string | null;
+  agentDisplayName?: string | null;
+  username?: string;
 }
 
 interface TeamPanelProps {
@@ -62,9 +60,9 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           {spymaster ? (
             <div className="flex items-center gap-2 pl-6">
               <span className="font-medium">
-                {spymaster.agent_display_name || spymaster.profiles?.username || 'Unknown'}
+                {spymaster.agentDisplayName || spymaster.username || 'Unknown'}
               </span>
-              {spymaster.vellum_agent_id && (
+              {spymaster.vellumAgentId && (
                 <Badge variant="secondary" className="text-xs">
                   <Bot className="h-3 w-3 mr-1" />
                   AI
@@ -86,9 +84,9 @@ export function TeamPanel({ team, players, remainingWords, isCurrentTeam }: Team
           {operative ? (
             <div className="flex items-center gap-2 pl-6">
               <span className="font-medium">
-                {operative.agent_display_name || operative.profiles?.username || 'Unknown'}
+                {operative.agentDisplayName || operative.username || 'Unknown'}
               </span>
-              {operative.vellum_agent_id && (
+              {operative.vellumAgentId && (
                 <Badge variant="secondary" className="text-xs">
                   <Bot className="h-3 w-3 mr-1" />
                   AI
