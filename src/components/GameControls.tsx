@@ -35,6 +35,7 @@ type GameEvent = {
   team: string | null;
   description: string;
   createdAt: string;
+  round: number;
 };
 
 /** Hypersummarized footer: clue entry (human spymaster), Step (agent), history. */
@@ -45,12 +46,15 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
   const [clueNumber, setClueNumber] = useState('2');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [events, setEvents] = useState<GameEvent[]>([]);
+  const [round, setRound] = useState(0);
   const { toast } = useToast();
 
   const isClueTime = currentPhase === 'spymaster_clue';
-  const currentAgent = isClueTime
-    ? null
-    : players.find(p => p.team === currentTeam && p.role === 'operative' && p.isAgent);
+  // Current seat for either phase — Step shows whenever an agent is up
+  const currentPlayer = isClueTime
+    ? players.find(p => p.team === currentTeam && p.role === 'spymaster')
+    : players.find(p => p.team === currentTeam && p.role === 'operative');
+  const currentAgent = currentPlayer?.isAgent ? currentPlayer : null;
 
   // Human spymaster of the current team enters the clue manually
   const amISPymaster =
@@ -62,10 +66,12 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
     !myPlayer?.isAgent;
 
   useEffect(() => {
-    if (!isHistoryOpen) return;
     fetch(`/api/games/${gameId}/events`)
       .then((res) => res.json())
-      .then((data) => setEvents(data.events ?? []))
+      .then((data) => {
+        setEvents(data.events ?? []);
+        setRound(data.round ?? 0);
+      })
       .catch(() => setEvents([]));
   }, [isHistoryOpen, lastAction, gameId]);
 
@@ -182,7 +188,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
                 <History className="h-3 w-3" />
-                History
+                Round {round + 1}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[70vh] overflow-y-auto">
@@ -201,6 +207,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
                         ev.team === 'red' ? "bg-team-red" : ev.team === 'blue' ? "bg-team-blue" : "bg-muted-foreground"
                       )}
                     />
+                    <span className="font-medium shrink-0">R{ev.round}</span>
                     <span className="text-muted-foreground">{ev.description}</span>
                   </div>
                 ))}

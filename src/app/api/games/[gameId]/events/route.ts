@@ -9,11 +9,18 @@ export async function GET(
 ) {
   const { gameId } = await params;
 
-  const events = await db
+  const rows = await db
     .select()
     .from(gameEvents)
     .where(eq(gameEvents.gameId, gameId))
     .orderBy(asc(gameEvents.createdAt));
 
-  return NextResponse.json({ events });
+  // Each clue starts a new round; guesses/passes belong to the round they follow
+  let round = 0;
+  const events = rows.map((e) => {
+    if (/gave clue/.test(e.description)) round += 1;
+    return { ...e, round };
+  });
+
+  return NextResponse.json({ events, round });
 }

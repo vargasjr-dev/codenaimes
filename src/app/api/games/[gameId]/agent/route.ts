@@ -43,6 +43,16 @@ export async function POST(
   const revealedWords = (game.revealedWords as string[]) ?? [];
   const unrevealedWords = words.filter((w) => !revealedWords.includes(w));
 
+  // Recent move history so the agent knows what was clued and guessed before
+  const recentEvents = await db
+    .select({ description: gameEvents.description })
+    .from(gameEvents)
+    .where(eq(gameEvents.gameId, gameId))
+    .orderBy(gameEvents.createdAt);
+  const historyText = recentEvents.length
+    ? recentEvents.map((e) => `- ${e.description}`).join("\n")
+    : "- (no moves yet)";
+
   if (action === "give_clue") {
     const teamWords = unrevealedWords.filter((w) => wordAssignments[w] === player.team);
     const opposingWords = unrevealedWords.filter(
@@ -61,6 +71,9 @@ export async function POST(
       `Opposing team's words (avoid): ${opposingWords.join(", ")}`,
       `Neutral words (avoid): ${neutralWords.join(", ")}`,
       `Assassin word (never lead operatives to): ${assassinWord ?? "none"}`,
+      "",
+      "Move history so far (do not reuse previous clues):",
+      historyText,
     ].join("\n");
 
     // Jev cannot generate text, so it picks the best clue from a legal
@@ -99,7 +112,7 @@ export async function POST(
       .set({
         currentClue: clue,
         currentClueNumber: number,
-        guessesRemaining: number + 1, // +1 bonus guess
+        guessesRemaining: number, // exact words
         currentPhase: "operative_guess",
         updatedAt: new Date(),
       })
@@ -120,6 +133,10 @@ export async function POST(
     `Current clue: "${game.currentClue}" (${game.currentClueNumber} words)`,
     `Guesses remaining this turn: ${game.guessesRemaining ?? 0}`,
     `Unrevealed words on the board: ${unrevealedWords.join(", ")}`,
+    `Already revealed words (do not guess these): ${revealedWords.length ? revealedWords.join(", ") : "none"}`,
+    "",
+    "Move history so far (previous clues and guesses — use them to interpret the current clue):",
+    historyText,
   ].join("\n");
 
   const options: Record<string, string | null> = Object.fromEntries(

@@ -60,7 +60,7 @@ export async function POST(
     .set({
       currentClue: word,
       currentClueNumber: number,
-      guessesRemaining: number + 1, // +1 bonus guess
+      guessesRemaining: number, // exact words
       currentPhase: "operative_guess",
       updatedAt: new Date(),
     })
