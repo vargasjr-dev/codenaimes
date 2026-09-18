@@ -80,7 +80,7 @@ export type JevAnswers = Record<string, JevChoiceAnswer | JevScoreAnswer>;
 
 /** Evaluate a question map against a state in a single TypeSafe API call. */
 export async function askJev(
-  state: string,
+  state: string | object,
   questions: Record<string, JevQuestion>,
 ): Promise<JevAnswers> {
   const apiKey = process.env.TYPESAFE_API_KEY;

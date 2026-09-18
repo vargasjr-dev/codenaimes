@@ -49,9 +49,9 @@ export async function POST(
     .from(gameEvents)
     .where(eq(gameEvents.gameId, gameId))
     .orderBy(gameEvents.createdAt);
-  const historyText = recentEvents.length
-    ? recentEvents.map((e) => `- ${e.description}`).join("\n")
-    : "- (no moves yet)";
+  const historyLines = recentEvents.length
+    ? recentEvents.map((e) => e.description)
+    : ["(no moves yet)"];
 
   if (action === "give_clue") {
     const teamWords = unrevealedWords.filter((w) => wordAssignments[w] === player.team);
@@ -65,16 +65,17 @@ export async function POST(
       return NextResponse.json({ error: "No team words left to clue" }, { status: 400 });
     }
 
-    const state = [
-      `You are the spymaster in a game of Codenames for the ${player.team} team.`,
-      `Your team's unrevealed words: ${teamWords.join(", ")}`,
-      `Opposing team's words (avoid): ${opposingWords.join(", ")}`,
-      `Neutral words (avoid): ${neutralWords.join(", ")}`,
-      `Assassin word (never lead operatives to): ${assassinWord ?? "none"}`,
-      "",
-      "Move history so far (do not reuse previous clues):",
-      historyText,
-    ].join("\n");
+    const state = {
+      role: "spymaster",
+      team: player.team,
+      yourTeamWords: teamWords,
+      opposingTeamWords: opposingWords,
+      neutralWords,
+      assassinWord: assassinWord ?? null,
+      unrevealedWords,
+      revealedWords,
+      moveHistory: historyLines,
+    };
 
     // Jev cannot generate text, so it picks the best clue from a legal
     // candidate vocabulary, then rates how many words the clue should link.
@@ -128,16 +129,18 @@ export async function POST(
   }
 
   // make_guess
-  const state = [
-    `You are an operative in a game of Codenames for the ${player.team} team.`,
-    `Current clue: "${game.currentClue}" (${game.currentClueNumber} words)`,
-    `Guesses remaining this turn: ${game.guessesRemaining ?? 0}`,
-    `Unrevealed words on the board: ${unrevealedWords.join(", ")}`,
-    `Already revealed words (do not guess these): ${revealedWords.length ? revealedWords.join(", ") : "none"}`,
-    "",
-    "Move history so far (previous clues and guesses — use them to interpret the current clue):",
-    historyText,
-  ].join("\n");
+  const state = {
+    role: "operative",
+    team: player.team,
+    clue: {
+      word: game.currentClue,
+      number: game.currentClueNumber,
+      guessesRemaining: game.guessesRemaining ?? 0,
+    },
+    unrevealedWords,
+    revealedWords,
+    moveHistory: historyLines,
+  };
 
   const options: Record<string, string | null> = Object.fromEntries(
     unrevealedWords.map((w) => [w, null]),
@@ -168,25 +171,6 @@ export async function POST(
       description,
     });
   };
-
-  if (guess === "PASS") {
-    const nextTeam = player.team === "red" ? "blue" : "red";
-    await db
-      .update(games)
-      .set({
-        currentTeam: nextTeam,
-        currentPhase: "spymaster_clue",
-        currentClue: null,
-        currentClueNumber: null,
-        guessesRemaining: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(games.id, gameId));
-
-    await logGuess(`${player.agentDisplayName ?? "Jev"} AI passed`);
-
-    return NextResponse.json({ success: true, action: "pass", nextTeam });
-  }
 
   const matchedWord = unrevealedWords.find((w) => w.toUpperCase() === guess);
   if (!matchedWord) {
