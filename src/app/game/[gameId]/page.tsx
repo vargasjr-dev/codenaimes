@@ -52,7 +52,6 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
   const fetchGameData = useCallback(async () => {
     if (!gameId) return;
     const res = await fetch(`/api/games/${gameId}`);
@@ -98,28 +97,21 @@ export default function Game() {
       const res = await fetch(`/api/games/${gameId}/events`);
       const data = await res.json();
       text = buildShareText({
-        gameName: game.name,
         words,
         wordAssignments,
         revealedWords,
         winner: game.winner,
         myTeam: myPlayer?.team === "red" || myPlayer?.team === "blue" ? myPlayer.team : null,
         events: data.events ?? [],
+        gameUrl: window.location.href,
       });
     } catch {
       return;
     }
-    if (navigator.share) {
-      try {
-        await navigator.share({ text });
-        return;
-      } catch {
-        /* user cancelled or share failed — fall through to clipboard */
-      }
-    }
-    await navigator.clipboard.writeText(text);
-    setShareCopied(true);
-    setTimeout(() => setShareCopied(false), 2000);
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      "_blank",
+    );
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -194,7 +186,7 @@ export default function Game() {
                   {game.winner.toUpperCase()} TEAM WINS!
                 </h2>
                 <Button variant="outline" size="sm" className="mt-3" onClick={shareResult}>
-                  {shareCopied ? <><Check className="mr-2 h-4 w-4" />Copied!</> : <><Link2 className="mr-2 h-4 w-4" />Share Result</>}
+                  <Link2 className="mr-2 h-4 w-4" />Share on X
                 </Button>
               </div>
             ) : (

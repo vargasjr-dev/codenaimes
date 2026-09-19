@@ -22,7 +22,7 @@ interface JoinGamePanelProps {
 }
 
 export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePanelProps) {
-  const [team, setTeam] = useState<'red' | 'blue'>('red');
+  const [team, setTeam] = useState<'red' | 'blue'>('blue');
   const [isJoining, setIsJoining] = useState(false);
   const [isAddingAgent, setIsAddingAgent] = useState(false);
   const [isFilling, setIsFilling] = useState(false);

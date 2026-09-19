@@ -41,11 +41,11 @@ export async function POST(request: Request) {
     .values({ name, hostUserId: user.id, status: "waiting" })
     .returning();
 
-  // Auto-join the host as the first player on the red team
+  // Auto-join the host as the first player on the blue team
   await db.insert(gamePlayers).values({
     gameId: game.id,
     userId: user.id,
-    team: "red",
+    team: "blue",
     role: "pending",
     isAgent: false,
   });

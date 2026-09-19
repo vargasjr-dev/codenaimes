@@ -1,10 +1,14 @@
 /**
- * Builds a compact, Wordle-style shareable game summary:
- *   CodenAImes — Game Name
- *   🟥 Red 6 — 3 Blue 🟦  ·  Loss (Red)
- *   ⬜🟥🟦🟨⬜
+ * Builds a compact, Wordle-style shareable game summary for X:
+ *   CodenAImes
+ *   I won! 🟦 3–2
+ *
+ *   🟦🟥⬜🟨⬜
  *   ...
- *   🟥 1. TIMBER 3 — draft ✓, bark ✗
+ *
+ *   🟦▸ 1. WOOD 2 — draft ✓, bark ✓, pass
+ *   🟥 2. METAL 3 — pilot 🟨
+ *   play: https://...
  */
 
 export type ShareEvent = {
@@ -20,81 +24,82 @@ const EMOJI: Record<string, string> = {
   assassin: "⬛",
 };
 
-function outcomeMarker(description: string): string {
+/** Guess outcome markers: ✓ hit, ✗ other team, 🟨 neutral, 💀 assassin */
+function outcomeMarker(description: string): string | null {
   if (/— correct/.test(description)) return "✓";
-  if (/— wrong|ASSASSIN/.test(description)) return "✗";
-  if (/passed|treated as a pass/.test(description)) return "–";
-  return "?";
+  if (/ASSASSIN/.test(description)) return "💀";
+  const wrong = description.match(/— wrong \((\w+)\)/);
+  if (wrong) return wrong[1] === "neutral" ? "🟨" : "✗";
+  if (/passed|treated as a pass/.test(description)) return "pass";
+  return null;
 }
 
 export function buildShareText(opts: {
-  gameName: string;
   words: string[];
   wordAssignments: Record<string, string>;
   revealedWords: string[];
   winner: string | null;
   myTeam: "red" | "blue" | null;
   events: ShareEvent[];
+  gameUrl: string;
 }): string {
-  const { gameName, words, wordAssignments, revealedWords, winner, myTeam, events } = opts;
+  const { words, wordAssignments, revealedWords, winner, myTeam, events, gameUrl } = opts;
 
-  // Board grid from the player's perspective — colors are final either way
+  // Board grid — colors are final either way
   const gridRows: string[] = [];
   for (let i = 0; i < words.length; i += 5) {
     gridRows.push(
       words
         .slice(i, i + 5)
-        .map((w) =>
-          revealedWords.includes(w)
-            ? EMOJI[wordAssignments[w]] ?? "⬜"
-            : "⬜",
-        )
+        .map((w) => (revealedWords.includes(w) ? EMOJI[wordAssignments[w]] ?? "⬜" : "⬜"))
         .join(""),
     );
   }
 
-  // Score = words each team revealed
+  // Score = words each team revealed; mine first
   const redScore = words.filter((w) => wordAssignments[w] === "red" && revealedWords.includes(w)).length;
   const blueScore = words.filter((w) => wordAssignments[w] === "blue" && revealedWords.includes(w)).length;
-
+  const score =
+    myTeam === "red" ? `${redScore}–${blueScore}` : `${blueScore}–${redScore}`;
   const resultLine =
     myTeam && winner
-      ? `${winner === "red" ? "🟥" : "🟦"} ${winner?.toUpperCase()} wins — ${
-          winner === myTeam ? "Win" : "Loss"
-        } for ${myTeam === "red" ? "🟥 Red" : "🟦 Blue"}`
-      : winner
-        ? `${winner === "red" ? "🟥" : "🟦"} ${winner?.toUpperCase()} wins`
-        : "";
+      ? `I ${winner === myTeam ? "won" : "lost"}! ${EMOJI[myTeam]} ${score}`
+      : `${winner === "red" ? "🟥" : "🟦"} ${score}`;
 
-  // Clue → guesses for the player's team
-  const myEvents = myTeam ? events.filter((e) => e.team === myTeam) : [];
-  const rounds: Array<{ clue: string; guesses: string[] }> = [];
-  for (const ev of myEvents) {
+  // Group events into turns (one clue + its guesses per round, per team)
+  type Turn = { team: string; clue: string | null; guesses: string[] };
+  const turns: Turn[] = [];
+  for (const ev of events) {
+    const team = ev.team ?? "";
     const clueMatch = ev.description.match(/gave clue "([A-Z]+)" \((\d+)\)/);
     if (clueMatch) {
-      rounds.push({ clue: `${clueMatch[1]} ${clueMatch[2]}`, guesses: [] });
+      turns.push({ team, clue: `${clueMatch[1]} ${clueMatch[2]}`, guesses: [] });
       continue;
     }
-    if (rounds.length > 0) {
-      const wordMatch = ev.description.match(/guessed "([A-Z]+)"/);
-      if (wordMatch) {
-        rounds[rounds.length - 1].guesses.push(`${wordMatch[1].toLowerCase()} ${outcomeMarker(ev.description)}`);
-      } else if (/passed|treated as a pass/.test(ev.description)) {
-        rounds[rounds.length - 1].guesses.push("pass");
-      }
+    const last = turns[turns.length - 1];
+    if (!last || last.team !== team) continue;
+    const wordMatch = ev.description.match(/guessed "([A-Z]+)"/);
+    const marker = outcomeMarker(ev.description);
+    if (wordMatch && marker) {
+      last.guesses.push(`${wordMatch[1].toLowerCase()} ${marker}`);
+    } else if (marker === "pass") {
+      last.guesses.push("pass");
     }
   }
 
-  const clueLines = rounds.map(
-    (r, i) => `${i + 1}. ${r.clue}${r.guesses.length ? " — " + r.guesses.join(", ") : " — no guesses"}`,
-  );
+  const turnLines = turns.map((t, i) => {
+    const badge = t.team === "red" ? "🟥" : "🟦";
+    const mine = myTeam === t.team ? "▸" : "";
+    return `${badge}${mine} ${i + 1}. ${t.clue ?? "?"}${t.guesses.length ? " — " + t.guesses.join(", ") : ""}`;
+  });
 
   return [
-    `CodenAImes — ${gameName}`,
-    `🟥 Red ${redScore} — ${blueScore} Blue 🟦`,
+    "CodenAImes",
     resultLine,
     "",
     ...gridRows,
-    ...(clueLines.length ? ["", ...clueLines] : []),
+    ...(turnLines.length ? ["", ...turnLines] : []),
+    "",
+    `play: ${gameUrl}`,
   ].join("\n");
 }
