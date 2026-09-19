@@ -83,11 +83,6 @@ export default function Game() {
         description: data.error,
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Roles assigned!',
-        description: 'First player on each team is Spymaster, second is Operative.',
-      });
     }
 
     await fetchGameData();
