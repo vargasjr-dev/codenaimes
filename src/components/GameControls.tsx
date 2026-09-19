@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Zap, History, Crown, Bot, User } from 'lucide-react';
+import { Loader2, Zap, History, Crown, Bot, User, Trophy, Share } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,8 @@ interface GameControlsProps {
   /** Unrevealed word counts per team */
   redRemaining: number;
   blueRemaining: number;
+  /** Shares the Wordle-style result summary (finished games) */
+  onShare?: () => void;
   onStateChange: () => void;
 }
 
@@ -47,7 +49,7 @@ type GameEvent = {
 };
 
 /** Hypersummarized footer: clue entry (human spymaster), Step (agent), history. */
-export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, maxClueNumber, redRemaining, blueRemaining, onStateChange }: GameControlsProps) {
+export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, maxClueNumber, redRemaining, blueRemaining, onShare, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestEvent, setLatestEvent] = useState<string | null>(null);
   const [clueWord, setClueWord] = useState('');
@@ -191,19 +193,34 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs min-w-0">
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-[10px] px-1.5 py-0 shrink-0",
-              currentTeam === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
-            )}
-          >
-            {currentTeam?.toUpperCase()}
-          </Badge>
-          <span className="text-muted-foreground truncate text-xs">
-            {isClueTime ? 'Spymaster' : 'Operative'}
-            {currentAgent ? ` — ${currentAgent.agentDisplayName || 'Jev'} AI` : ''}
-          </span>
+          {winner ? (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] px-1.5 py-0 shrink-0 flex items-center gap-1",
+                winner === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
+              )}
+            >
+              <Trophy className="h-3 w-3" />
+              {winner.toUpperCase()} WINS!
+            </Badge>
+          ) : (
+            <>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-1.5 py-0 shrink-0",
+                  currentTeam === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
+                )}
+              >
+                {currentTeam?.toUpperCase()}
+              </Badge>
+              <span className="text-muted-foreground truncate text-xs">
+                {isClueTime ? 'Spymaster' : 'Operative'}
+                {currentAgent ? ` — ${currentAgent.agentDisplayName || 'Jev'} AI` : ''}
+              </span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -254,6 +271,18 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
                 <Zap className="h-3 w-3" />
               )}
               Step
+            </Button>
+          )}
+
+          {winner && onShare && (
+            <Button
+              onClick={onShare}
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-xs"
+            >
+              <Share className="h-3 w-3" />
+              Share
             </Button>
           )}
         </div>

@@ -9,7 +9,7 @@ import { JoinGamePanel } from "@/components/JoinGamePanel";
 import { ClueDisplay } from "@/components/ClueDisplay";
 import { GameControls } from "@/components/GameControls";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play, Loader2, Trophy, Link2, Check } from "lucide-react";
+import { ArrowLeft, Play, Loader2, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { buildShareText } from "@/lib/share";
 import { WordAssignment } from "@/lib/codenames-words";
@@ -170,37 +170,18 @@ export default function Game() {
 
         {(game.status === 'in_progress' || game.status === 'finished') && (
           <div className="flex-1 flex flex-col gap-2">
-            {game.status === 'finished' && game.winner ? (
-              <div className={cn(
-                "text-center py-6 rounded-lg border-2",
-                game.winner === 'red' ? "border-team-red bg-team-red/10 card-glow-red" : "border-team-blue bg-team-blue/10 card-glow-blue"
-              )}>
-                <Trophy className={cn(
-                  "h-10 w-10 mx-auto mb-3",
-                  game.winner === 'red' ? "text-team-red" : "text-team-blue"
-                )} />
-                <h2 className={cn(
-                  "text-2xl font-display font-bold",
-                  game.winner === 'red' ? "text-team-red" : "text-team-blue"
-                )}>
-                  {game.winner.toUpperCase()} TEAM WINS!
-                </h2>
-                <Button variant="outline" size="sm" className="mt-3" onClick={shareResult}>
-                  <Link2 className="mr-2 h-4 w-4" />Share on X
-                </Button>
-              </div>
-            ) : null}
             <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
 
             <div className="mt-auto space-y-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
               <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
               <GameControls
-              gameId={gameId as string}
-              currentTeam={game.currentTeam as 'red' | 'blue' | null}
-              currentPhase={game.currentPhase}
-              players={players}
-              isHost={isHost}
-              winner={game.winner}
+                gameId={gameId as string}
+                currentTeam={game.currentTeam as 'red' | 'blue' | null}
+                currentPhase={game.currentPhase}
+                players={players}
+                isHost={isHost}
+                winner={game.winner}
+                onShare={shareResult}
               updatedAt={game.updatedAt}
               myPlayer={myPlayer ? { team: myPlayer.team, role: myPlayer.role, isAgent: myPlayer.isAgent } : null}
               maxClueNumber={game.currentTeam === 'red' ? redRemaining : blueRemaining}
