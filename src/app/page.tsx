@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { GameLobbyList } from "@/components/GameLobbyList";
+import { GameHistory } from "@/components/GameHistory";
 import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -112,9 +112,9 @@ export default function Index() {
           <h2 className="text-2xl font-display font-bold mb-2">
             Hey {user.username}! {user.isGuest && <span className="text-sm font-normal text-muted-foreground">(guest)</span>}
           </h2>
-          <p className="text-muted-foreground">Create a room and share the link, or join an open room below</p>
+          <p className="text-muted-foreground">Your games and results</p>
         </div>
-        <GameLobbyList />
+        <GameHistory />
       </main>
 
       <footer className="border-t border-border mt-12 py-6">
