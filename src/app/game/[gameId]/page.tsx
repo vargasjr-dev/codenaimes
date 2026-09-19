@@ -146,13 +146,10 @@ export default function Game() {
 
         {(game.status === 'in_progress' || game.status === 'finished') && (
           <div className="space-y-2">
-            <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
-            <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
-
-            {game.status === 'finished' && game.winner && (
+            {game.status === 'finished' && game.winner ? (
               <div className={cn(
                 "text-center py-6 rounded-lg border-2",
-                game.winner === 'red' ? "border-team-red bg-team-red/10" : "border-team-blue bg-team-blue/10"
+                game.winner === 'red' ? "border-team-red bg-team-red/10 card-glow-red" : "border-team-blue bg-team-blue/10 card-glow-blue"
               )}>
                 <Trophy className={cn(
                   "h-10 w-10 mx-auto mb-3",
@@ -165,7 +162,10 @@ export default function Game() {
                   {game.winner.toUpperCase()} TEAM WINS!
                 </h2>
               </div>
+            ) : (
+              <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
             )}
+            <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
 
             <GameControls
               gameId={gameId as string}
