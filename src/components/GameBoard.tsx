@@ -67,7 +67,7 @@ export function GameBoard({
           onClick={() => !disabled && !revealedWords.includes(word) && onWordClick?.(word)}
           disabled={disabled || revealedWords.includes(word)}
         >
-          <span className="text-[8px] xs:text-[10px] sm:text-xs md:text-sm font-semibold tracking-tight sm:tracking-wide uppercase break-words leading-tight">
+          <span className="text-[11px] xs:text-sm sm:text-base md:text-lg font-semibold tracking-tight sm:tracking-wide uppercase break-words leading-tight">
             {word}
           </span>
         </button>

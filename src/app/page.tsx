@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, LogOut, Zap, BookOpen, User } from "lucide-react";
+import { Loader2, LogOut, Zap, User } from "lucide-react";
 
 export default function Index() {
   const { user, loading, playAsGuest, signOut } = useAuth();
@@ -95,12 +95,6 @@ export default function Index() {
             <h1 className="text-xl font-display font-bold text-gradient-primary">CodenAImes</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/how-to" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span className="hidden sm:inline">How To</span>
-              </Link>
-            </Button>
             <CreateGameDialog />
             <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-5 w-5" /></Button>
           </div>
@@ -108,12 +102,6 @@ export default function Index() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h2 className="text-2xl font-display font-bold mb-2">
-            Hey {user.username}! {user.isGuest && <span className="text-sm font-normal text-muted-foreground">(guest)</span>}
-          </h2>
-          <p className="text-muted-foreground">Your games and results</p>
-        </div>
         <GameHistory />
       </main>
 

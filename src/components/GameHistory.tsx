@@ -80,7 +80,11 @@ export function GameHistory() {
               {game.result === 'win' && <Trophy className="h-4 w-4 shrink-0 text-team-red" />}
               {game.result === 'loss' && <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />}
               {game.result === null && <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />}
-              <span className="font-medium truncate">{game.name}</span>
+              <span className="font-medium truncate">
+                {game.finishedAt
+                  ? new Date(game.finishedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                  : '—'}
+              </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {game.score && (game.score.red > 0 || game.score.blue > 0) && (
