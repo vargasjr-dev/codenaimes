@@ -67,6 +67,21 @@ export async function POST(
     return NextResponse.json({ error: "Clue cannot be a word on the board" }, { status: 400 });
   }
 
+  // Clues already given this game are off the table
+  const clueEvents = await db
+    .select({ description: gameEvents.description })
+    .from(gameEvents)
+    .where(eq(gameEvents.gameId, gameId));
+  const usedClues = new Set(
+    clueEvents
+      .map((e) => e.description.match(/gave clue "([A-Z]+)"/)?.[1])
+      .filter(Boolean)
+      .map((c) => (c as string).toLowerCase()),
+  );
+  if (usedClues.has(word.toLowerCase())) {
+    return NextResponse.json({ error: "That clue was already used this game" }, { status: 400 });
+  }
+
   await db
     .update(games)
     .set({

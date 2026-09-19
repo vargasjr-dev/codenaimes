@@ -39,6 +39,31 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   // Agent rows belong to whoever added them — they don't count as "already joined"
   const isAlreadyJoined = existingPlayers.some((p) => p.userId === user?.id && !p.isAgent);
 
+  const mySeat = existingPlayers.find((p) => p.userId === user?.id && !p.isAgent);
+  const [myRole, setMyRole] = useState<'spymaster' | 'operative'>('spymaster');
+  const [isSettingRole, setIsSettingRole] = useState(false);
+
+  useEffect(() => {
+    if (mySeat?.role === 'spymaster' || mySeat?.role === 'operative') {
+      setMyRole(mySeat.role);
+    }
+  }, [mySeat?.role]);
+
+  const handleRoleChange = async (role: 'spymaster' | 'operative') => {
+    setMyRole(role);
+    setIsSettingRole(true);
+    try {
+      await fetch(`/api/games/${gameId}/role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      onJoined();
+    } finally {
+      setIsSettingRole(false);
+    }
+  };
+
   const allSpotsFilled = existingPlayers.length >= 4;
 
   // When the selected team fills up, jump to the other team if it has room
@@ -227,6 +252,27 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
             </div>
           </RadioGroup>
         </div>
+
+        {isAlreadyJoined && (
+          <div className="space-y-3">
+            <Label>Your Role</Label>
+            <RadioGroup
+              value={myRole}
+              onValueChange={(v) => handleRoleChange(v as 'spymaster' | 'operative')}
+              className="flex gap-4"
+              disabled={isSettingRole}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="spymaster" id="role-spymaster" />
+                <Label htmlFor="role-spymaster" className="font-semibold">Spymaster</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="operative" id="role-operative" />
+                <Label htmlFor="role-operative" className="font-semibold">Guesser</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
 
         {!isAlreadyJoined && (
           <Button

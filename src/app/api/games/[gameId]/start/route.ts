@@ -36,12 +36,27 @@ export async function POST(
     );
   }
 
-  // Auto-assign roles: first player on each team becomes spymaster, second operative
-  for (const [index, player] of redPlayers.slice(0, 2).entries()) {
-    await db.update(gamePlayers).set({ role: index === 0 ? "spymaster" : "operative" }).where(eq(gamePlayers.id, player.id));
-  }
-  for (const [index, player] of bluePlayers.slice(0, 2).entries()) {
-    await db.update(gamePlayers).set({ role: index === 0 ? "spymaster" : "operative" }).where(eq(gamePlayers.id, player.id));
+  // Assign roles per team, honoring any role the player picked in the lobby:
+  // the first spymaster-picked (or first seat) leads; everyone else fills the
+  // complementary role.
+  for (const teamPlayers of [redPlayers.slice(0, 2), bluePlayers.slice(0, 2)]) {
+    let needSpymaster = !teamPlayers.some((p) => p.role === "spymaster");
+    let needOperative = !teamPlayers.some((p) => p.role === "operative");
+    for (const player of teamPlayers) {
+      let role: "spymaster" | "operative";
+      if (player.role !== "pending") {
+        role = player.role as "spymaster" | "operative"; // keep the lobby pick
+      } else if (needSpymaster) {
+        role = "spymaster";
+      } else if (needOperative) {
+        role = "operative";
+      } else {
+        continue;
+      }
+      await db.update(gamePlayers).set({ role }).where(eq(gamePlayers.id, player.id));
+      if (role === "spymaster") needSpymaster = false;
+      else needOperative = false;
+    }
   }
 
   const words = getRandomWords(25);

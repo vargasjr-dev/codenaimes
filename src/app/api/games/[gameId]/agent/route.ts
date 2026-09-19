@@ -82,7 +82,21 @@ export async function POST(
     // deterministically against the spymaster's allegiances, and the best
     // candidate wins. Jev never sees which word belongs to which team — the
     // scoring happens in code.
-    const candidates = candidateClues(unrevealedWords);
+    // Clues already given this game are off the table
+    const clueEvents = await db
+      .select({ description: gameEvents.description })
+      .from(gameEvents)
+      .where(eq(gameEvents.gameId, gameId));
+    const usedClues = new Set(
+      clueEvents
+        .map((e) => e.description.match(/gave clue "([A-Z]+)"/)?.[1])
+        .filter(Boolean)
+        .map((c) => (c as string).toLowerCase()),
+    );
+
+    const candidates = candidateClues(unrevealedWords).filter(
+      (c) => !usedClues.has(c.toLowerCase()),
+    );
     const questions: Record<string, {
       type: "choice";
       instructions: string;
