@@ -32,6 +32,9 @@ interface GameControlsProps {
   myPlayer?: { team: string; role: string; isAgent?: boolean } | null;
   /** Max clue number — the current team's unrevealed word count */
   maxClueNumber: number;
+  /** Unrevealed word counts per team */
+  redRemaining: number;
+  blueRemaining: number;
   onStateChange: () => void;
 }
 
@@ -44,7 +47,7 @@ type GameEvent = {
 };
 
 /** Hypersummarized footer: clue entry (human spymaster), Step (agent), history. */
-export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, maxClueNumber, onStateChange }: GameControlsProps) {
+export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, maxClueNumber, redRemaining, blueRemaining, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestEvent, setLatestEvent] = useState<string | null>(null);
   const [clueWord, setClueWord] = useState('');
@@ -154,6 +157,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
     const names = teamPlayers.map(p =>
       p.isAgent ? `${p.agentDisplayName || 'Jev'} AI` : p.username || '?'
     );
+    const remaining = team === 'red' ? redRemaining : blueRemaining;
     return (
       <div key={team} className="flex items-center gap-1.5 min-w-0">
         <span className={cn(
@@ -162,6 +166,15 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
         )}>
           {team}
         </span>
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[10px] px-1.5 py-0 shrink-0",
+            team === 'red' ? "border-team-red text-team-red" : "border-team-blue text-team-blue"
+          )}
+        >
+          {remaining} left
+        </Badge>
         <span className="text-muted-foreground truncate text-xs">
           {names.join(', ') || '—'}
         </span>
