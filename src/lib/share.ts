@@ -1,12 +1,11 @@
 /**
  * Builds a compact, Wordle-style shareable game summary for X:
- *   CodenAImes
  *   I won! 🟦 3–2
  *
  *   🟦🟥⬜🟨⬜
  *   ...
  *
- *   🟦▸ 1. WOOD 2 — draft ✓, bark ✓, pass
+ *   🟦 1. WOOD 2 — draft 🟦, bark 🟦, pass
  *   🟥 2. METAL 3 — pilot 🟨
  *   play: https://...
  */
@@ -24,12 +23,12 @@ const EMOJI: Record<string, string> = {
   assassin: "⬛",
 };
 
-/** Guess outcome markers: ✓ hit, ✗ other team, 🟨 neutral, 💀 assassin */
-function outcomeMarker(description: string): string | null {
-  if (/— correct/.test(description)) return "✓";
-  if (/ASSASSIN/.test(description)) return "💀";
+/** Guess outcome markers: own square hit, opposing square miss, 🟨 neutral, ⬛ assassin */
+function outcomeMarker(description: string, team: string): string | null {
+  if (/— correct/.test(description)) return team === "red" ? "🟥" : "🟦";
+  if (/ASSASSIN/.test(description)) return "⬛";
   const wrong = description.match(/— wrong \((\w+)\)/);
-  if (wrong) return wrong[1] === "neutral" ? "🟨" : "✗";
+  if (wrong) return wrong[1] === "neutral" ? "🟨" : wrong[1] === "red" ? "🟥" : "🟦";
   if (/passed|treated as a pass/.test(description)) return "pass";
   return null;
 }
@@ -79,7 +78,7 @@ export function buildShareText(opts: {
     const last = turns[turns.length - 1];
     if (!last || last.team !== team) continue;
     const wordMatch = ev.description.match(/guessed "([A-Z]+)"/);
-    const marker = outcomeMarker(ev.description);
+    const marker = outcomeMarker(ev.description, team);
     if (wordMatch && marker) {
       last.guesses.push(`${wordMatch[1].toLowerCase()} ${marker}`);
     } else if (marker === "pass") {
@@ -89,12 +88,10 @@ export function buildShareText(opts: {
 
   const turnLines = turns.map((t, i) => {
     const badge = t.team === "red" ? "🟥" : "🟦";
-    const mine = myTeam === t.team ? "▸" : "";
-    return `${badge}${mine} ${i + 1}. ${t.clue ?? "?"}${t.guesses.length ? " — " + t.guesses.join(", ") : ""}`;
+    return `${badge} ${i + 1}. ${t.clue ?? "?"}${t.guesses.length ? " — " + t.guesses.join(", ") : ""}`;
   });
 
   return [
-    "CodenAImes",
     resultLine,
     "",
     ...gridRows,

@@ -103,7 +103,7 @@ export default function Game() {
         winner: game.winner,
         myTeam: myPlayer?.team === "red" || myPlayer?.team === "blue" ? myPlayer.team : null,
         events: data.events ?? [],
-        gameUrl: window.location.href,
+        gameUrl: window.location.origin,
       });
     } catch {
       return;
