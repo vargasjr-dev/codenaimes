@@ -80,7 +80,7 @@ export function GameHistory() {
         >
           <CardContent className="py-3 px-4 flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              {game.result === 'win' && <Trophy className="h-4 w-4 shrink-0 text-team-red" />}
+              {game.result === 'win' && <Trophy className={cn('h-4 w-4 shrink-0', game.myTeam === 'blue' ? 'text-team-blue' : 'text-team-red')} />}
               {game.result === 'loss' && <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />}
               {game.result === null && <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />}
               <span className="font-medium truncate">
