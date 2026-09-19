@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, Bot, User } from 'lucide-react';
+import { Loader2, Bot, User, Users } from 'lucide-react';
 
 interface JoinGamePanelProps {
   gameId: string;
@@ -25,6 +25,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   const [team, setTeam] = useState<'red' | 'blue'>('red');
   const [isJoining, setIsJoining] = useState(false);
   const [isAddingAgent, setIsAddingAgent] = useState(false);
+  const [isFilling, setIsFilling] = useState(false);
   const { user, playAsGuest } = useAuth();
   const { toast } = useToast();
 
@@ -39,6 +40,16 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
   const isAlreadyJoined = existingPlayers.some((p) => p.userId === user?.id && !p.isAgent);
 
   const allSpotsFilled = existingPlayers.length >= 4;
+
+  // When the selected team fills up, jump to the other team if it has room
+  useEffect(() => {
+    if (allSpotsFilled) return;
+    if (isTeamFull(team)) {
+      const other = team === 'red' ? 'blue' : 'red';
+      if (!isTeamFull(other)) setTeam(other);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingPlayers.length]);
 
   const handleGuest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,9 +104,9 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
       }
 
       toast({
-        title: addAgent ? 'Jev added!' : 'Joined game!',
+        title: addAgent ? 'Agent added!' : 'Joined game!',
         description: addAgent
-          ? `Jev is playing on the ${team} team.`
+          ? `Your agent is playing on the ${team} team.`
           : `You are now on the ${team} team.`,
       });
 
@@ -113,6 +124,45 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
     }
   };
 
+  const handleFillRemaining = async () => {
+    if (!user) return;
+
+    setIsFilling(true);
+    try {
+      const res = await fetch(`/api/games/${gameId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fillRemaining: true }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: 'Failed to fill seats',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Seats filled!',
+        description: `${data.added} agent${data.added === 1 ? '' : 's'} joined the table.`,
+      });
+
+      onJoined();
+    } catch (error) {
+      console.error('Error filling seats:', error);
+      toast({
+        title: 'Error',
+        description: 'Something went wrong.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFilling(false);
+    }
+  };
+
   if (allSpotsFilled) {
     return null;
   }
@@ -122,9 +172,6 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
       <Card className="card-glow">
         <CardHeader>
           <CardTitle className="font-display">Join Game</CardTitle>
-          <CardDescription>
-            No account needed — just tell us your name
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleGuest} className="space-y-4">
@@ -169,11 +216,6 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
         <CardTitle className="font-display">
           {isAlreadyJoined ? 'Fill Empty Seats' : 'Join Game'}
         </CardTitle>
-        <CardDescription>
-          {isAlreadyJoined
-            ? 'Add Jev to any open seat, or share the room link'
-            : 'Pick a team — play yourself or add Jev as your teammate'}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">
@@ -201,7 +243,7 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
         {!isAlreadyJoined && (
           <Button
             className="w-full"
-            disabled={isJoining || isAddingAgent || isTeamFull(team)}
+            disabled={isJoining || isAddingAgent || isFilling || isTeamFull(team)}
             onClick={() => handleJoin(false)}
           >
             {isJoining ? (
@@ -219,18 +261,38 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
           type="button"
           variant="secondary"
           className="w-full"
-          disabled={isJoining || isAddingAgent || isTeamFull(team)}
+          disabled={isJoining || isAddingAgent || isFilling || isTeamFull(team)}
           onClick={() => handleJoin(true)}
         >
           {isAddingAgent ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding Jev...
+              Adding agent...
             </>
           ) : (
             <>
               <Bot className="mr-2 h-4 w-4" />
-              Add Jev Agent to Team
+              Add Agent to Team
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={isJoining || isAddingAgent || isFilling}
+          onClick={handleFillRemaining}
+        >
+          {isFilling ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Filling seats...
+            </>
+          ) : (
+            <>
+              <Users className="mr-2 h-4 w-4" />
+              Fill Remaining Seats with Agents
             </>
           )}
         </Button>
