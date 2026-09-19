@@ -128,7 +128,7 @@ export default function Game() {
   const blueRemaining = words.filter(w => wordAssignments[w] === 'blue' && !revealedWords.includes(w)).length;
 
   return (
-    <div className="min-h-screen bg-background grid-pattern flex flex-col">
+    <div className="min-h-[100dvh] bg-background grid-pattern flex flex-col">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
@@ -192,7 +192,7 @@ export default function Game() {
             ) : null}
             <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
 
-            <div className="mt-auto space-y-2">
+            <div className="mt-auto space-y-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
               <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
               <GameControls
               gameId={gameId as string}
