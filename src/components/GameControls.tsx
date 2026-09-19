@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Zap, History, Crown, Bot, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -68,6 +69,17 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
     myPlayer?.team === currentTeam &&
     myPlayer?.role === 'spymaster' &&
     !myPlayer?.isAgent;
+
+  const clueNumberOptions = Array.from({ length: Math.max(maxClueNumber, 1) }, (_, i) => i + 1);
+
+  // Keep the selected clue number valid when the remaining-word max shrinks
+  useEffect(() => {
+    const n = parseInt(clueNumber, 10);
+    if (!Number.isInteger(n) || n < 1 || n > maxClueNumber) {
+      setClueNumber(String(Math.min(Math.max(Number.isInteger(n) ? n : 2, 1), maxClueNumber)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxClueNumber]);
 
   useEffect(() => {
     fetch(`/api/games/${gameId}/events`)
@@ -243,18 +255,19 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
             className="h-8 text-sm flex-1"
             autoComplete="off"
           />
-          <Input
+          <Select
             value={clueNumber}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, '');
-              const n = parseInt(digits, 10);
-              setClueNumber(digits === '' ? '' : String(Math.min(Math.max(n, 1), maxClueNumber)));
-            }}
-            inputMode="numeric"
-            max={maxClueNumber}
-            className="h-8 text-sm w-14 text-center"
-            aria-label="Number of words"
-          />
+            onValueChange={(v) => setClueNumber(v)}
+          >
+            <SelectTrigger className="h-8 w-16 text-sm" aria-label="Number of words">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {clueNumberOptions.map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button type="submit" size="sm" className="h-8 px-3 text-xs" disabled={isProcessing || !clueWord.trim()}>
             {isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Give Clue'}
           </Button>
