@@ -103,13 +103,6 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
         return;
       }
 
-      toast({
-        title: addAgent ? 'Agent added!' : 'Joined game!',
-        description: addAgent
-          ? `Your agent is playing on the ${team} team.`
-          : `You are now on the ${team} team.`,
-      });
-
       onJoined();
     } catch (error) {
       console.error('Error joining:', error);
@@ -144,11 +137,6 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
         });
         return;
       }
-
-      toast({
-        title: 'Seats filled!',
-        description: `${data.added} agent${data.added === 1 ? '' : 's'} joined the table.`,
-      });
 
       onJoined();
     } catch (error) {

@@ -15,6 +15,7 @@ type HistoryGame = {
   winner: string | null;
   myTeam: 'red' | 'blue' | null;
   result: 'win' | 'loss' | null;
+  score: { red: number; blue: number };
   finishedAt: string | null;
 };
 
@@ -82,6 +83,13 @@ export function GameHistory() {
               <span className="font-medium truncate">{game.name}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {game.score && (game.score.red > 0 || game.score.blue > 0) && (
+                <span className="text-sm font-mono text-muted-foreground" title="Red – Blue words revealed">
+                  <span className="text-team-red font-bold">{game.score.red}</span>
+                  {' – '}
+                  <span className="text-team-blue font-bold">{game.score.blue}</span>
+                </span>
+              )}
               {game.result && (
                 <Badge
                   variant="outline"

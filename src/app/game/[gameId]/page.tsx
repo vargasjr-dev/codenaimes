@@ -133,7 +133,6 @@ export default function Game() {
                   await navigator.clipboard.writeText(window.location.href);
                   setLinkCopied(true);
                   setTimeout(() => setLinkCopied(false), 2000);
-                  toast({ title: 'Link copied!', description: 'Send it to friends so they can join this room.' });
                 }}
               >
                 {linkCopied ? <Check className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}

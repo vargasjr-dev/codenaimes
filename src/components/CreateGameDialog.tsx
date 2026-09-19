@@ -45,11 +45,6 @@ export function CreateGameDialog() {
       return;
     }
 
-    toast({
-      title: 'Room created!',
-      description: 'Redirecting to game lobby...',
-    });
-
     setIsCreating(false);
     router.push(`/game/${data.game.id}`);
   };
