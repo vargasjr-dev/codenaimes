@@ -11,6 +11,7 @@ import { GameControls } from "@/components/GameControls";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, Loader2, Trophy, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { buildShareText } from "@/lib/share";
 import { WordAssignment } from "@/lib/codenames-words";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const fetchGameData = useCallback(async () => {
     if (!gameId) return;
     const res = await fetch(`/api/games/${gameId}`);
@@ -87,6 +89,37 @@ export default function Game() {
 
     await fetchGameData();
     setIsStarting(false);
+  };
+
+  const shareResult = async () => {
+    if (!game) return;
+    let text = "";
+    try {
+      const res = await fetch(`/api/games/${gameId}/events`);
+      const data = await res.json();
+      text = buildShareText({
+        gameName: game.name,
+        words,
+        wordAssignments,
+        revealedWords,
+        winner: game.winner,
+        myTeam: myPlayer?.team === "red" || myPlayer?.team === "blue" ? myPlayer.team : null,
+        events: data.events ?? [],
+      });
+    } catch {
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch {
+        /* user cancelled or share failed — fall through to clipboard */
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -160,6 +193,9 @@ export default function Game() {
                 )}>
                   {game.winner.toUpperCase()} TEAM WINS!
                 </h2>
+                <Button variant="outline" size="sm" className="mt-3" onClick={shareResult}>
+                  {shareCopied ? <><Check className="mr-2 h-4 w-4" />Copied!</> : <><Link2 className="mr-2 h-4 w-4" />Share Result</>}
+                </Button>
               </div>
             ) : (
               <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
