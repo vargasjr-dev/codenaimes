@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestEvent, setLatestEvent] = useState<string | null>(null);
   const [clueWord, setClueWord] = useState('');
+  const clueInputRef = useRef<HTMLInputElement>(null);
   const [clueNumber, setClueNumber] = useState('2');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [events, setEvents] = useState<GameEvent[]>([]);
@@ -262,8 +263,16 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
       {amISPymaster && (
         <form onSubmit={submitClue} className="flex items-center gap-2 pt-1">
           <Input
+            ref={clueInputRef}
             value={clueWord}
             onChange={(e) => setClueWord(e.target.value)}
+            onFocus={() => {
+              // Let the keyboard finish animating, then bring the input well
+              // above it — iOS doesn't reliably do this for pinned footers.
+              setTimeout(() => {
+                clueInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              }, 300);
+            }}
             placeholder="Your clue word"
             className="h-8 text-sm flex-1"
             autoComplete="off"

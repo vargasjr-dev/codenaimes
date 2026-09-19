@@ -69,7 +69,7 @@ export function GameHistory() {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-        <span className="flex items-center gap-1"><Trophy className="h-4 w-4 text-team-red" /> {wins} wins</span>
+        <span className="flex items-center gap-1"><Trophy className="h-4 w-4 text-emerald-500" /> {wins} wins</span>
         <span className="flex items-center gap-1"><XCircle className="h-4 w-4 text-muted-foreground" /> {losses} losses</span>
       </div>
       {games.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map(game => (
@@ -80,7 +80,7 @@ export function GameHistory() {
         >
           <CardContent className="py-3 px-4 flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              {game.result === 'win' && <Trophy className={cn('h-4 w-4 shrink-0', game.myTeam === 'blue' ? 'text-team-blue' : 'text-team-red')} />}
+              {game.result === 'win' && <Trophy className="h-4 w-4 shrink-0 text-emerald-500" />}
               {game.result === 'loss' && <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />}
               {game.result === null && <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />}
               <span className="font-medium truncate">
