@@ -22,7 +22,9 @@ type HistoryGame = {
 export function GameHistory() {
   const [games, setGames] = useState<HistoryGame[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
   const router = useRouter();
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchGames();
@@ -36,6 +38,7 @@ export function GameHistory() {
       if (!res.ok) return;
       const data = await res.json();
       setGames(data.games ?? []);
+      setPage((p) => Math.min(p, Math.max(0, Math.ceil((data.games ?? []).length / PAGE_SIZE) - 1)));
     } finally {
       setLoading(false);
     }
@@ -69,7 +72,7 @@ export function GameHistory() {
         <span className="flex items-center gap-1"><Trophy className="h-4 w-4 text-team-red" /> {wins} wins</span>
         <span className="flex items-center gap-1"><XCircle className="h-4 w-4 text-muted-foreground" /> {losses} losses</span>
       </div>
-      {games.map(game => (
+      {games.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map(game => (
         <Card
           key={game.id}
           className="transition-all hover:scale-[1.01] cursor-pointer"
@@ -114,6 +117,30 @@ export function GameHistory() {
           </CardContent>
         </Card>
       ))}
+
+      {games.length > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            Newer
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {page + 1} of {Math.ceil(games.length / PAGE_SIZE)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= Math.ceil(games.length / PAGE_SIZE) - 1}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Older
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
