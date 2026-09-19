@@ -214,15 +214,15 @@ export function JoinGamePanel({ gameId, existingPlayers, onJoined }: JoinGamePan
             className="flex gap-4"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="red" id="team-red" disabled={isTeamFull('red')} />
-              <Label htmlFor="team-red" className="text-team-red font-semibold">
-                Red Team {isTeamFull('red') && '(Full)'}
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
               <RadioGroupItem value="blue" id="team-blue" disabled={isTeamFull('blue')} />
               <Label htmlFor="team-blue" className="text-team-blue font-semibold">
                 Blue Team {isTeamFull('blue') && '(Full)'}
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="red" id="team-red" disabled={isTeamFull('red')} />
+              <Label htmlFor="team-red" className="text-team-red font-semibold">
+                Red Team {isTeamFull('red') && '(Full)'}
               </Label>
             </div>
           </RadioGroup>

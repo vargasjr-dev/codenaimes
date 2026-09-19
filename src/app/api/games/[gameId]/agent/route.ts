@@ -120,6 +120,15 @@ export async function POST(
         else if (neutralWords.includes(word)) score -= NEUTRAL_PENALTY * p;
       }
 
+      // Prefer multi-word clues: scale the score by how many team words the
+      // distribution's top-3 covers, with an extra kick when losing.
+      const top3 = [...unrevealedWords]
+        .sort((a, b) => (dist[b] ?? 0) - (dist[a] ?? 0))
+        .slice(0, 3);
+      const count = top3.filter((w) => teamWords.includes(w)).length;
+      const losing = teamWords.length > opposingWords.length;
+      score *= 1 + 0.5 * (count - 1) + (losing ? 0.25 * (count - 1) : 0);
+
       if (score > bestScore) {
         bestScore = score;
         bestCandidate = candidate;

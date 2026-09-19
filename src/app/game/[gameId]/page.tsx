@@ -168,8 +168,8 @@ export default function Game() {
         {game.status === 'waiting' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
             <div className="lg:col-span-1 space-y-2">
-              <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={false} />
               <TeamPanel team="blue" players={bluePlayers} remainingWords={blueRemaining} isCurrentTeam={false} />
+              <TeamPanel team="red" players={redPlayers} remainingWords={redRemaining} isCurrentTeam={false} />
               <JoinGamePanel gameId={gameId as string} existingPlayers={players} onJoined={fetchGameData} />
               <Button
                 variant="outline"
