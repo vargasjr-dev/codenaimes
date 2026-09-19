@@ -9,7 +9,7 @@ import { JoinGamePanel } from "@/components/JoinGamePanel";
 import { ClueDisplay } from "@/components/ClueDisplay";
 import { GameControls } from "@/components/GameControls";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play, Loader2, Link2, Check } from "lucide-react";
+import { ArrowLeft, Play, Loader2, Trophy, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { buildShareText } from "@/lib/share";
 import { WordAssignment } from "@/lib/codenames-words";
@@ -52,6 +52,26 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // When the iOS keyboard opens it overlays the visual viewport without
+  // resizing the layout — expose the overlap so the pinned footer can
+  // lift the clue input above the keyboard.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--keyboard-overlap', `${overlap}px`);
+    };
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+      document.documentElement.style.removeProperty('--keyboard-overlap');
+    };
+  }, []);
   const fetchGameData = useCallback(async () => {
     if (!gameId) return;
     const res = await fetch(`/api/games/${gameId}`);
@@ -172,8 +192,34 @@ export default function Game() {
           <div className="flex-1 flex flex-col gap-2">
             <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
 
-            <div className="mt-auto space-y-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-              <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
+            <div
+              className="mt-auto space-y-2"
+              style={{ paddingBottom: 'max(calc(env(safe-area-inset-bottom) + var(--keyboard-overlap, 0px)), 0.75rem)' }}
+            >
+              {game.status === 'finished' && game.winner ? (
+                <div className={cn(
+                  "rounded-lg border-2 py-4",
+                  game.winner === 'red' ? "border-team-red bg-team-red/10" : "border-team-blue bg-team-blue/10"
+                )}>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <Trophy className={cn(
+                      "h-6 w-6",
+                      game.winner === 'red' ? "text-team-red" : "text-team-blue"
+                    )} />
+                    <span className={cn(
+                      "text-2xl font-display font-bold",
+                      game.winner === 'red' ? "text-team-red" : "text-team-blue"
+                    )}>
+                      {game.winner.toUpperCase()} WINS!
+                    </span>
+                    <Button variant="outline" size="sm" onClick={shareResult}>
+                      <Link2 className="mr-2 h-4 w-4" />Share on X
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <ClueDisplay clue={game.currentClue} number={game.currentClueNumber} currentTeam={game.currentTeam} guessesRemaining={game.guessesRemaining} />
+              )}
               <GameControls
                 gameId={gameId as string}
                 currentTeam={game.currentTeam as 'red' | 'blue' | null}
@@ -181,7 +227,6 @@ export default function Game() {
                 players={players}
                 isHost={isHost}
                 winner={game.winner}
-                onShare={shareResult}
               updatedAt={game.updatedAt}
               myPlayer={myPlayer ? { team: myPlayer.team, role: myPlayer.role, isAgent: myPlayer.isAgent } : null}
               maxClueNumber={game.currentTeam === 'red' ? redRemaining : blueRemaining}
