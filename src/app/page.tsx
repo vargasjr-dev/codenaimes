@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { GameHistory } from "@/components/GameHistory";
 import { CreateGameDialog } from "@/components/CreateGameDialog";
@@ -13,6 +14,7 @@ import { Loader2, LogOut, Zap, User } from "lucide-react";
 
 export default function Index() {
   const { user, loading, playAsGuest, signOut } = useAuth();
+  const router = useRouter();
 
   const [guestName, setGuestName] = useState("");
   const [isCreatingGuest, setIsCreatingGuest] = useState(false);
@@ -49,7 +51,8 @@ export default function Index() {
                   e.preventDefault();
                   if (!guestName.trim()) return;
                   setIsCreatingGuest(true);
-                  await playAsGuest(guestName.trim());
+                  const { error } = await playAsGuest(guestName.trim());
+                  if (!error) router.refresh();
                   setIsCreatingGuest(false);
                 }}
               >
@@ -107,7 +110,9 @@ export default function Index() {
 
       <footer className="border-t border-border mt-12 py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 VargasJR LLC. All rights reserved.</p>
+          <p>
+            &copy; 2026 <a href="https://www.vargasjr.dev" className="underline hover:text-foreground">VargasJR LLC</a>. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>
