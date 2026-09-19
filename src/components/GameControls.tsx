@@ -29,6 +29,8 @@ interface GameControlsProps {
   updatedAt?: string | null;
   /** The signed-in player's own seat (non-agent) */
   myPlayer?: { team: string; role: string; isAgent?: boolean } | null;
+  /** Max clue number — the current team's unrevealed word count */
+  maxClueNumber: number;
   onStateChange: () => void;
 }
 
@@ -41,7 +43,7 @@ type GameEvent = {
 };
 
 /** Hypersummarized footer: clue entry (human spymaster), Step (agent), history. */
-export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, onStateChange }: GameControlsProps) {
+export function GameControls({ gameId, currentTeam, currentPhase, players, winner, updatedAt, myPlayer, maxClueNumber, onStateChange }: GameControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestEvent, setLatestEvent] = useState<string | null>(null);
   const [clueWord, setClueWord] = useState('');
@@ -83,6 +85,10 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
     e.preventDefault();
     const number = parseInt(clueNumber, 10);
     if (!clueWord.trim() || !Number.isInteger(number)) return;
+    if (number < 1 || number > maxClueNumber) {
+      toast({ title: 'Invalid clue', description: `Number must be between 1 and ${maxClueNumber}`, variant: 'destructive' });
+      return;
+    }
 
     setIsProcessing(true);
     const res = await fetch(`/api/games/${gameId}/clue`, {
@@ -239,8 +245,13 @@ export function GameControls({ gameId, currentTeam, currentPhase, players, winne
           />
           <Input
             value={clueNumber}
-            onChange={(e) => setClueNumber(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '');
+              const n = parseInt(digits, 10);
+              setClueNumber(digits === '' ? '' : String(Math.min(Math.max(n, 1), maxClueNumber)));
+            }}
             inputMode="numeric"
+            max={maxClueNumber}
             className="h-8 text-sm w-14 text-center"
             aria-label="Number of words"
           />

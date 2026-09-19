@@ -176,6 +176,7 @@ export default function Game() {
               winner={game.winner}
               updatedAt={game.updatedAt}
               myPlayer={myPlayer ? { team: myPlayer.team, role: myPlayer.role, isAgent: myPlayer.isAgent } : null}
+              maxClueNumber={game.currentTeam === 'red' ? redRemaining : blueRemaining}
               onStateChange={fetchGameData}
             />
           </div>

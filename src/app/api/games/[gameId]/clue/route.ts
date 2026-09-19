@@ -46,11 +46,23 @@ export async function POST(
   if (!word || !/^[A-Z]+$/.test(word)) {
     return NextResponse.json({ error: "Clue must be a single word (letters only)" }, { status: 400 });
   }
-  if (!Number.isInteger(number) || number < 1 || number > 8) {
-    return NextResponse.json({ error: "Number must be between 1 and 8" }, { status: 400 });
+  if (!Number.isInteger(number) || number < 1) {
+    return NextResponse.json({ error: "Number must be at least 1" }, { status: 400 });
   }
 
+  // Clue number cannot exceed the team's unrevealed words
   const boardWords = ((game.words as string[]) ?? []).map((w) => w.toUpperCase());
+  const assignments = (game.wordAssignments as Record<string, string>) ?? {};
+  const revealed = ((game.revealedWords as string[]) ?? []).map((w) => w.toUpperCase());
+  const teamRemaining = boardWords.filter(
+    (w) => assignments[w] === game.currentTeam && !revealed.includes(w),
+  ).length;
+  if (number > teamRemaining) {
+    return NextResponse.json(
+      { error: `Only ${teamRemaining} of your team's words remain` },
+      { status: 400 },
+    );
+  }
   if (boardWords.includes(word)) {
     return NextResponse.json({ error: "Clue cannot be a word on the board" }, { status: 400 });
   }
