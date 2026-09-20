@@ -147,6 +147,37 @@ export default function Game() {
   const redRemaining = words.filter(w => wordAssignments[w] === 'red' && !revealedWords.includes(w)).length;
   const blueRemaining = words.filter(w => wordAssignments[w] === 'blue' && !revealedWords.includes(w)).length;
 
+  const [isGuessing, setIsGuessing] = useState(false);
+  const canGuess = !!(
+    game.status === 'in_progress' &&
+    game.currentPhase === 'operative_guess' &&
+    myPlayer &&
+    myPlayer.role !== 'spymaster' &&
+    myPlayer.team === game.currentTeam &&
+    (game.guessesRemaining ?? 0) > 0
+  );
+
+  const handleGuess = async (word: string) => {
+    if (isGuessing) return;
+    setIsGuessing(true);
+    try {
+      const res = await fetch(`/api/games/${gameId}/guess`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: data.error ?? 'Guess failed', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Guess failed — try again', variant: 'destructive' });
+    } finally {
+      setIsGuessing(false);
+      fetchGameData();
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background grid-pattern flex flex-col">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
@@ -190,7 +221,7 @@ export default function Game() {
 
         {(game.status === 'in_progress' || game.status === 'finished') && (
           <div className="flex-1 flex flex-col gap-2">
-            <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={true} />
+            <GameBoard words={words} wordAssignments={wordAssignments} revealedWords={revealedWords} isSpymaster={myPlayer?.role === 'spymaster'} disabled={!canGuess || isGuessing} onWordClick={handleGuess} />
 
             <div
               className="mt-auto space-y-2"
